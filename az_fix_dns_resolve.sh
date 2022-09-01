@@ -66,3 +66,7 @@ fi
 
 echo "WARNING: Resetting networkd, this may cause VM to lose connectivity!" 
 nohup sh -c "$NETWORK_RESET_COMMAND"
+
+
+# including a command example to run a base64 encode/decode to send the command to the guest using ssh+ip
+# ssh user@X.X.X.X echo "`cat ./az_fix_dns_resolve.sh | base64 -w 0` | base64 -d | sudo sh
