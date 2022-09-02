@@ -1,6 +1,8 @@
 #! /bin/bash
 
-# Example code for fix for wireserver issue on latest AKS ubuntu systemd update.
+# Example code for fix for wireserver issue on latest ubuntu 18.04 aks and base udev and systemd update.
+# specifically: libsystemd and udev amd64 237-3ubuntu10.54
+# https://bugs.launchpad.net/ubuntu/+source/systemd/+bug/1988119
 # READ BEFORE USE:
 #   This script restarts the systemd.resolved service. This action has the potential to remove
 #   mess with custom DNS/DHCP configurations. It is recommended to test this script
