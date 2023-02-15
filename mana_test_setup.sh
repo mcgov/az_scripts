@@ -1,7 +1,7 @@
 #! /bin/bash
 sudo apt update
 sudo apt-get install -y git tar meson cmake gcc libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind python3-dev cython3 python3-docutils pandoc build-essential flex bison libssl-dev unzip libelf-dev python3-pip
-sudo pip3 install pyelftools
+pip3 install pyelftools
 
 
 # Build/install 6.2-rc2
