@@ -9,7 +9,7 @@ pip3 install pyelftools
 #https://github.com/torvalds/linux.git
 
 # or use longs rdma-fix branch for now
-git clone --branch rdma-fix https://github.com/longlimsft/linux.git
+git clone --branch rdma-fix https://github.com/longlimsft/linux.git --depth 1
 pushd linux
 
 #wget https://github.com/longlimsft/linux/archive/refs/heads/rdma-fix.zip
