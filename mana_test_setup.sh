@@ -1,6 +1,6 @@
 #! /bin/bash
 sudo apt update
-sudo apt-get install -y git tar meson cmake gcc libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind python3-dev cython3 python3-docutils pandoc build-essential flex bison libssl-dev unzip libelf-dev python3-pip
+sudo apt-get install -y git tar meson cmake gcc libudev-dev libnl-3-dev libnl-route-3-dev bc ninja-build pkg-config valgrind python3-dev cython3 python3-docutils pandoc build-essential flex bison libssl-dev unzip libelf-dev python3-pip
 pip3 install pyelftools
 
 
@@ -20,7 +20,8 @@ pushd linux
 yes "" | make oldconfig
 sed -i 's/CONFIG_SYSTEM_REVOCATION_LIST/#CONFIG_SYSTEM_REVOCATION_LIST/g' .config
 sed -i 's/CONFIG_SYSTEM_TRUSTED_KEYS/#CONFIG_SYSTEM_TRUSTED_KEYS/g' .config
-sed -i 's/# CONFIG_MANA_INFINIBAND is not set/CONFIG_MANA_INFINIBAND=m/g' .config
+echo "CONFIG_MANA_INFINIBAND=m" >> .config
+
 yes "" | make -j 12
 sudo make modules_install
 sudo make install
