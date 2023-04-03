@@ -1,7 +1,5 @@
 #! /bin/bash
 
-#"marketplace_image:canonical 0001-com-ubuntu-server-jammy 22_04-lts latest"
-
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
@@ -25,7 +23,8 @@ DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y build-essential cmake 
 libnl-3-dev libnl-route-3-dev ninja-build pkg-config \
 valgrind python3-dev cython3 python3-docutils pandoc \
 build-essential flex bison libssl-dev unzip \
-libelf-dev python3-pip meson dwarves
+libelf-dev python3-pip meson dwarves libnuma-dev libpcap-dev
+
 
 assert_success
 
@@ -89,7 +88,7 @@ assert_success
 # # Long's already have it, upstream might not.
 # sed -i "s/'af_packet',/'af_packet',\n        'mana',/g" drivers/net/meson.build
 
-meson build 
+meson build -Dexamples=l3fwd
 assert_success
 
 cd build
@@ -103,7 +102,14 @@ echo 'ib_uverbs' | sudo tee -a /etc/modules
 echo 'mana_ib' | sudo tee -a /etc/modules
 
 echo "SETUP AND BUILD COMPLETE"
-yes 'y' | sudo waagent deprovision+user
-# $disks =  az disk list --resource-group $rg | ConvertFrom-Json
-# az sig image-version list-shared 
-# az sig image-version create --resource-group $rg --gallery-name $gallery --gallery-image-definition $image --gallery-image-version $version --os-snapshot $disks[0].id
+
+#yes 'y' | sudo waagent deprovision+user
+
+# rg=mamcgove-dev-test
+# gallery=mamcgove_mana_dpdk
+# image=mana-dpdk-22-04
+# disks=`az disk list --resource-group $rg` ## doesn't work
+# version=`az sig image-version list --gallery-name $gallery --gallery-image-definition $image --resource-group $rg` | jq.[-1].name
+# split=
+# $new_version = @($split.P1, $split.P2, ($split.P3 + 1)) -join "."
+# az sig image-version create --resource-group $rg --gallery-name $gallery --gallery-image-definition $image --gallery-image-version $new_version --os-snapshot $disks[0].id
