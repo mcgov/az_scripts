@@ -2,7 +2,7 @@
 
 # Script to install dependencies and setup an Azure VM with MANA for DPDK
 # requires a MANA compatible kernel, rdma-core, and dpdk
-# This script is for ubuntu server 22.04
+# This script is for ubuntu server 22.04 and RHEL >= 8.4
 
 function assert_success {
     if [ $? -ne 0 ]; then
