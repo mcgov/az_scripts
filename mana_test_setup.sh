@@ -20,14 +20,32 @@ function check_and_append {
     fi;
 }
 
-export DEBIAN_FRONTEND=noninteractive
-sudo apt update
-DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y build-essential cmake libudev-dev \
-libnl-3-dev libnl-route-3-dev ninja-build pkg-config \
-valgrind python3-dev cython3 python3-docutils pandoc \
-flex bison libssl-dev \
-libelf-dev python3-pip meson dwarves libnuma-dev libpcap-dev
-assert_success
+# hackey os detection, not for production.
+# tested on 22.04 and RHEL 8.6/9.2
+if [[ -n `which apt` ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt update
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y build-essential cmake libudev-dev \
+    libnl-3-dev libnl-route-3-dev ninja-build pkg-config \
+    valgrind python3-dev cython3 python3-docutils pandoc \
+    flex bison libssl-dev \
+    libelf-dev python3-pip meson dwarves libnuma-dev libpcap-dev
+    assert_success
+elif [[ -n `which yum` ]]; then
+    sudo yum update
+    sudo yum -y groupinstall "Development Tools"
+    sudo yum install -y cmake gcc libudev-devel \
+     libnl3-devel pkg-config \
+     valgrind python3-devel python3-docutils \
+     flex bison openssl-devel unzip dwarves \
+     elfutils-devel python3-pip meson dwarves libpcap-devel \
+     tar wget dos2unix psmisc kernel-devel-$(uname -r) \
+     librdmacm-devel libmnl-devel kernel-modules-extra numactl-devel \
+     kernel-headers elfutils-libelf-devel meson ninja-build libbpf-devel
+else
+    echo "unsupported os, exiting..."
+    exit -1;
+fi
 
 pip3 install pyelftools
 
