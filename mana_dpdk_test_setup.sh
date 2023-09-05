@@ -57,35 +57,46 @@ if [ -z "$LINUX_GIT_REFERENCE" ]; then
     LINUX_GIT_REFERENCE="v6.4"
 fi
 
-# Build/install Linux kernel
-git clone $LINUIX_GIT_SOURCE -b $LINUX_GIT_REFERENCE --depth 1
-assert_success
-pushd linux
-#git checkout v6.2-rc2
-yes "" | make oldconfig
-assert_success
-sed -i 's/CONFIG_SYSTEM_REVOCATION_LIST/#CONFIG_SYSTEM_REVOCATION_LIST/g' .config
-sed -i 's/CONFIG_SYSTEM_TRUSTED_KEYS/#CONFIG_SYSTEM_TRUSTED_KEYS/g' .config
-sed -i 's/# CONFIG_MANA_INFINIBAND is not set/CONFIG_MANA_INFINIBAND=m/g' .config
-#check that it's set
-check_and_append .config 'CONFIG_MANA_INFINIBAND=m'
-# build it
-yes "" | make -j 12
-assert_success
-sudo make modules_install
-assert_success
-sudo make install
-assert_success
-popd
+if [[ -n "$SKIP_LINUX_KERNEL_INSTALL" ]]; then
+    # Build/install Linux kernel
+    git clone $LINUIX_GIT_SOURCE -b $LINUX_GIT_REFERENCE --depth 1
+    assert_success
+    pushd linux
+    #git checkout v6.2-rc2
+    yes "" | make oldconfig
+    assert_success
+    sed -i 's/CONFIG_SYSTEM_REVOCATION_LIST/#CONFIG_SYSTEM_REVOCATION_LIST/g' .config
+    sed -i 's/CONFIG_SYSTEM_TRUSTED_KEYS/#CONFIG_SYSTEM_TRUSTED_KEYS/g' .config
+    sed -i 's/# CONFIG_MANA_INFINIBAND is not set/CONFIG_MANA_INFINIBAND=m/g' .config
+    #check that it's set
+    check_and_append .config 'CONFIG_MANA_INFINIBAND=m'
+    # build it
+    yes "" | make -j 12
+    assert_success
+    sudo make modules_install
+    assert_success
+    sudo make install
+    assert_success
+    popd
+fi
 
-# build/install rdma-core 44
+# build/install rdma-core 46
+# cursed not-for-production rdma-core installation from source YMMV
+
 wget https://github.com/linux-rdma/rdma-core/releases/download/v46.0/rdma-core-46.0.tar.gz
 assert_success
 tar xzvf rdma-core-46.0.tar.gz
 assert_success
 pushd rdma-core-46.0/
 assert_success
-# cursed not-for-production rdma-core installation from source YMMV
+
+# ubuntu backport kernel for with mana_ib for 5.15 may not provide a backported rdma-core with the matching driver_id
+# to hack around this, swap ERDMA and MANA driver_ids such that mana matches the kernel header in the backport.
+if [[ -n "$APPLY_UBUNTU_BACKPORT_KERNEL_HACK" ]]; then
+    sed -i 's/RDMA_DRIVER_ERDMA/RDMA-DRIVER-MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+    sed -i 's/RDMA_DRIVER_MANA/RDMA_DRIVER_ERDMA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+    sed -i 's/RDMA-DRIVER-MANA/RDMA_DRIVER_MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+fi
 cmake -DIN_PLACE=0 -DNO_MAN_PAGES=1 -DCMAKE_INSTALL_PREFIX=/usr
 assert_success
 sudo make -j 28
@@ -93,6 +104,7 @@ assert_success
 sudo make install
 assert_success
 popd 
+
 
 if [ -z "$DPDK_GIT_SOURCE" ]; then
     DPDK_GIT_SOURCE="https://github.com/DPDK/dpdk.git"
