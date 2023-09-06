@@ -50,14 +50,14 @@ fi
 pip3 install pyelftools
 
 # pick Linux repo and tag to build, 6.4 release has all the vpci and mana bits.
-if [ -z "$LINUIX_GIT_SOURCE" ]; then
+if [[ -z "$LINUIX_GIT_SOURCE" ]]; then
     LINUIX_GIT_SOURCE="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
 fi
-if [ -z "$LINUX_GIT_REFERENCE" ]; then
+if [[ -z "$LINUX_GIT_REFERENCE" ]]; then
     LINUX_GIT_REFERENCE="v6.4"
 fi
 
-if [[ -n "$SKIP_LINUX_KERNEL_INSTALL" ]]; then
+if [[ -z "$SKIP_LINUX_KERNEL_INSTALL" ]]; then
     # Build/install Linux kernel
     git clone $LINUIX_GIT_SOURCE -b $LINUX_GIT_REFERENCE --depth 1
     assert_success
@@ -82,57 +82,59 @@ fi
 
 # build/install rdma-core 46
 # cursed not-for-production rdma-core installation from source YMMV
-
-wget https://github.com/linux-rdma/rdma-core/releases/download/v46.0/rdma-core-46.0.tar.gz
-assert_success
-tar xzvf rdma-core-46.0.tar.gz
-assert_success
-pushd rdma-core-46.0/
-assert_success
-
-# ubuntu backport kernel for with mana_ib for 5.15 may not provide a backported rdma-core with the matching driver_id
-# to hack around this, swap ERDMA and MANA driver_ids such that mana matches the kernel header in the backport.
-if [[ -n "$APPLY_UBUNTU_BACKPORT_KERNEL_HACK" ]]; then
-    sed -i 's/RDMA_DRIVER_ERDMA/RDMA-DRIVER-MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
-    sed -i 's/RDMA_DRIVER_MANA/RDMA_DRIVER_ERDMA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
-    sed -i 's/RDMA-DRIVER-MANA/RDMA_DRIVER_MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+if [[ -z "$SKIP_RDMA_INSTALL" ]]; then
+    wget https://github.com/linux-rdma/rdma-core/releases/download/v46.0/rdma-core-46.0.tar.gz
+    assert_success
+    tar xzvf rdma-core-46.0.tar.gz
+    assert_success
+    pushd rdma-core-46.0/
+    assert_success
+    
+    # ubuntu backport kernel for with mana_ib for 5.15 may not provide a backported rdma-core with the matching driver_id
+    # to hack around this, swap ERDMA and MANA driver_ids such that mana matches the kernel header in the backport.
+    if [[ -n "$APPLY_UBUNTU_BACKPORT_KERNEL_HACK" ]]; then
+        sed -i 's/RDMA_DRIVER_ERDMA/RDMA-DRIVER-MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+        sed -i 's/RDMA_DRIVER_MANA/RDMA_DRIVER_ERDMA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+        sed -i 's/RDMA-DRIVER-MANA/RDMA_DRIVER_MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
+    fi
+    cmake -DIN_PLACE=0 -DNO_MAN_PAGES=1 -DCMAKE_INSTALL_PREFIX=/usr
+    assert_success
+    sudo make -j 28
+    assert_success
+    sudo make install
+    assert_success
+    popd 
 fi
-cmake -DIN_PLACE=0 -DNO_MAN_PAGES=1 -DCMAKE_INSTALL_PREFIX=/usr
-assert_success
-sudo make -j 28
-assert_success
-sudo make install
-assert_success
-popd 
 
-
-if [ -z "$DPDK_GIT_SOURCE" ]; then
+if [[ -z "$DPDK_GIT_SOURCE" ]]; then
     DPDK_GIT_SOURCE="https://github.com/DPDK/dpdk.git"
 fi;
-if [ -z "$DPDK_GIT_REF" ]; then
+if [[ -z "$DPDK_GIT_REF" ]]; then
     DPDK_GIT_REF="v23.07-rc3"
 fi
-# build / install dpdk 22.11  (already will be in lisa working dir)
-git clone $DPDK_GIT_SOURCE
-assert_success
-pushd dpdk
-git checkout $DPDK_GIT_REF
-assert_success
-meson build -Dexamples=l3fwd
-assert_success
 
-cd build
-ninja
-assert_success
-sudo ninja install
-assert_success
-popd
-
-echo 'ib_uverbs' | sudo tee -a /etc/modules
-echo 'mana_ib' | sudo tee -a /etc/modules
-
-echo "SETUP AND BUILD COMPLETE"
-
+if [[ -z "$SKIP_DPDK_INSTALL" ]]; then
+    # build / install dpdk 22.11  (already will be in lisa working dir)
+    git clone $DPDK_GIT_SOURCE
+    assert_success
+    pushd dpdk
+    git checkout $DPDK_GIT_REF
+    assert_success
+    meson build -Dexamples=l3fwd
+    assert_success
+    
+    cd build
+    ninja
+    assert_success
+    sudo ninja install
+    assert_success
+    popd
+    
+    echo 'ib_uverbs' | sudo tee -a /etc/modules
+    echo 'mana_ib' | sudo tee -a /etc/modules
+    
+    echo "SETUP AND BUILD COMPLETE"
+fi
 ## run manually to genericize if creating an azure sig image
 # sudo -s
 # waagent deprovision+user 
