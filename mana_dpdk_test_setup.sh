@@ -20,6 +20,14 @@ function check_and_append {
     fi;
 }
 
+# NOTE for ubuntu 22.04:
+# linux-azure and linux-modules-extra-azure installs 6.2
+# for 5.15.0-1045 use linux-azure-lts-22.04 and linux-modules-extra-azure-22.04
+# 6.2 doesn't require anything special other than rdma-core >=v44 and dpdk > 22.11
+# 5.15.0-1045 has MANA backported but not ERDMA from rdma-core v43
+# this throws off the driver_id fields and requires some tinkering for now.
+# note the special steps in the rdma-core installation path below.
+
 # hackey os detection, not for production.
 # tested on 22.04 and RHEL 8.6/9.2
 if [[ -n `which apt` ]]; then
@@ -29,7 +37,7 @@ if [[ -n `which apt` ]]; then
     libnl-3-dev libnl-route-3-dev ninja-build pkg-config \
     valgrind python3-dev cython3 python3-docutils pandoc \
     flex bison libssl-dev \
-    libelf-dev python3-pip meson dwarves libnuma-dev libpcap-dev
+    libelf-dev python3-pip meson dwarves libnuma-dev libpcap-dev \
     assert_success
 elif [[ -n `which yum` ]]; then
     sudo yum update
