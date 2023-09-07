@@ -4,7 +4,27 @@
 # not match up when building rdma-core from source.
 
 # This script is a cursed hack to test DPDK on MANA machines.
+function assert_success {
+    if [ $? -ne 0 ]; then
+        echo "Last call failed! Exiting..."
+        exit -1
+    fi
+}
 
+
+# hackey os detection, not for production.
+# tested on 22.04 and RHEL 8.6/9.2
+if [[ -n `which apt` ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt update
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y build-essential cmake libudev-dev \
+    libnl-3-dev libnl-route-3-dev pkg-config \
+    valgrind python3-dev cython3 python3-docutils pandoc \
+     libssl-dev libelf-dev python3-pip dwarves libnuma-dev libpcap-dev
+else
+    echo "apt is not present, exiting..."
+    exit -1
+fi
 # download rdma-core 46
 wget https://github.com/linux-rdma/rdma-core/releases/download/v46.0/rdma-core-46.0.tar.gz
 assert_success
