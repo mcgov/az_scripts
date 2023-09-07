@@ -20,6 +20,10 @@ function check_and_append {
     fi;
 }
 
+echo "STOP: did you update the kernel to latest? for ubuntu install and upgrade:"
+echo "linux-azure linux-modules-extra-azure"
+sleep 10
+
 # NOTE for ubuntu 22.04:
 # linux-azure and linux-modules-extra-azure installs 6.2
 # for 5.15.0-1045 use linux-azure-lts-22.04 and linux-modules-extra-azure-22.04
