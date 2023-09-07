@@ -36,6 +36,7 @@ assert_success
 # cursed hackey non-fix, just swap the IDs in the enum so the kernel header matches the
 # one in the backported kernel when ERDMA is not present.
 if [[ -n "$APPLY_UBUNTU_5_15_BACKPORT_KERNEL_HACK" ]]; then
+    echo "applying awful hack to align MANA driver_id"
     sed -i 's/RDMA_DRIVER_ERDMA/RDMA-DRIVER-MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
     sed -i 's/RDMA_DRIVER_MANA/RDMA_DRIVER_ERDMA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
     sed -i 's/RDMA-DRIVER-MANA/RDMA_DRIVER_MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
@@ -49,4 +50,4 @@ sudo make install
 assert_success
 popd 
 
-echo "RDMA v46 with swapped driver_id field is installed. Ensure older versions of rdma-core are uninstalled. You may need to rebuild DPDK."
+echo "RDMA v46 is installed. Ensure older versions of rdma-core are uninstalled. You may need to rebuild DPDK."
