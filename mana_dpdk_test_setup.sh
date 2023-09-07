@@ -104,7 +104,7 @@ if [[ -z "$SKIP_RDMA_INSTALL" ]]; then
     
     # ubuntu backport kernel for with mana_ib for 5.15 may not provide a backported rdma-core with the matching driver_id
     # to hack around this, swap ERDMA and MANA driver_ids such that mana matches the kernel header in the backport.
-    if [[ -n "$APPLY_UBUNTU_BACKPORT_KERNEL_HACK" ]]; then
+    if [[ -n "$APPLY_UBUNTU_5_15_BACKPORT_KERNEL_HACK" ]]; then
         sed -i 's/RDMA_DRIVER_ERDMA/RDMA-DRIVER-MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
         sed -i 's/RDMA_DRIVER_MANA/RDMA_DRIVER_ERDMA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
         sed -i 's/RDMA-DRIVER-MANA/RDMA_DRIVER_MANA/g' ./kernel-headers/rdma/ib_user_ioctl_verbs.h
