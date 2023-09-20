@@ -2,7 +2,6 @@
 # Ubuntu 22.04 5.15.0 versions with backported MANA changes did not backport the ERDMA driver.
 # Since ERDMA was added in rdma-core v43 and MANA was added in v44, the driver_id field does
 # not match up when building rdma-core from source.
-
 # This script is a cursed hack to test DPDK on MANA machines.
 function assert_success {
     if [ $? -ne 0 ]; then
@@ -11,6 +10,8 @@ function assert_success {
     fi
 }
 
+echo "NOTE: this hack will likely not be needed in 2024. If the year is >= 2024 and you are using this script, stop."
+sleep 10
 
 # hackey os detection, not for production.
 # tested on 22.04 and RHEL 8.6/9.2
