@@ -9,12 +9,9 @@ A fix for dns issues pushed in a recent ubuntu systemd update on azure (systemd 
 
 Script to verify accerated networking has finished initializing on Azure
 
-**kernel_mana_dpdk_test_setup.sh**
+**dpdk-helpers/*.sh**
 
 Build or install upstream linux kernel, rdma-core, and dpdk packages for MANA testing on Azure for Ubuntu 22.04 or RHEL 8.4+
-
-**install_rdma_and_dpdk.sh**
-Build and install just rdma-core and dpdk for mana testing. Use on Ubuntu 22.04 >=6.2 kernel
 
 *and the rest!*
 

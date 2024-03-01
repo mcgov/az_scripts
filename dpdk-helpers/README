@@ -1,0 +1,11 @@
+# how to use this?
+./dpdk-test-setup.ubuntu.sh
+# then...
+./pps-dpdk-testpmd.sh txonly 
+
+# or: 
+#on the sender:
+./pps-dpdk-testpmd.sh txonly x.x.x.x y.y.y.y
+
+# on the receiver:
+./pps-dpdk-testpmd.sh rxonly
