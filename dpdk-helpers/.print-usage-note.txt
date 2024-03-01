@@ -1,0 +1,16 @@
+dpdk-helpers usage:
+
+## to build DPDK and rdma-core from source
+./dpdk-test-setup.ubuntu.sh
+## or to use apt-get to install dpdk
+./dpdk-test-setup.ubuntu.sh --use-apt
+
+## then...
+./pps-dpdk-testpmd.sh txonly 
+
+# or to run a send/receive test: 
+## on the sender:
+./pps-dpdk-testpmd.sh txonly x.x.x.x y.y.y.y
+
+## on the receiver:
+./pps-dpdk-testpmd.sh rxonly

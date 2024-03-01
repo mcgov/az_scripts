@@ -17,21 +17,19 @@ function check_and_append {
 }
 
 export DEBIAN_FRONTEND=noninteractive
+
 # install dependencies for building dpdk and rdma-core
-sudo apt update
-DEBIAN_FRONTEND=noninteractive sudo apt install -q -y build-essential cmake libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind python3-dev cython3 python3-docutils pandoc libssl-dev libelf-dev python3-pip meson libnuma-dev libpcap-dev linux-modules-extra-azure
-assert_success
-pip3 install pyelftools
-assert_success
 
-# NOTE: this would be where you build and/or update the Linux kernel.
-#       rdma-core and dpdk depend on kernel headers. 
-
-# install rdma-core and dpdk
-bash ./install-rdma-core.sh
-assert_success
-bash ./install-dpdk.ubuntu.sh
-assert_success
+if [[ "$1" == "--use-package-manager"  ]]; then
+    sudo apt update
+    DEBIAN_FRONTEND=noninteractive sudo apt install -y -q dpdk rdma-core linux-modules-extra-azure
+elif [[ "$1" == "--help" ]]; then
+    cat ./.print-usage-note.txt
+    exit 0
+else
+    sudo apt update
+    ./run-dpdk-rdma-source-install.sh
+fi
 
 # set required drivers to load automatically
 echo 'ib_uverbs' | sudo tee -a /etc/modules

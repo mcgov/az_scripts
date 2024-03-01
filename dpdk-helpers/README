@@ -9,3 +9,16 @@
 
 # on the receiver:
 ./pps-dpdk-testpmd.sh rxonly
+
+# useful environment vairables and their defaults:
+    # dpdk build from source.
+    DPDK_GIT_SOURCE="https://github.com/DPDK/dpdk.git"
+    DPDK_GIT_REF="v23.11"
+    
+    #rdma-core downloads a tarball from github
+    RDMA_CORE_VERSION="49.1"
+    
+    # git tree and ref for kernel-install.sh
+    # note: note run by default
+    LINUIX_GIT_SOURCE="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+    LINUX_GIT_REFERENCE="v6.4"
