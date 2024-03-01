@@ -35,8 +35,8 @@ fi
 let LAST_CORE=$FWD_CORES+1
 
 PRIMARY="eth1"
-echo "running netvsc pmd setup..."
-if [[ -f "/sys/class/net/$PRIMARY" ]]; then
+echo "running netvsc pmd setup. Must re-run "
+if [[ -e "/sys/class/net/$PRIMARY" ]]; then
     ./setup-netvsc-pmd.sh eth1
     assert_success
 else
@@ -44,7 +44,8 @@ else
     # otherwise, this is a re-run, attempt to set the lower interface down.
     LOWER="`cat ./$PRIMARY.lower.nic`"
     if [[ -z "$LOWER" ]]; then
-        echo "Note file: ./$PRIMARY.lower.nic not found. Setup is broken, reach out to the maintainer."
+        echo "Note file: ./$PRIMARY.lower.nic not found. Setup is broken."
+        ./display-maintainer-info.sh
         exit -1
     fi
     ip link set $LOWER down
@@ -52,11 +53,11 @@ fi
 
 # Setup should place an argument file with the stuff needed to run testpmd
 # Or, it's already there.
-if [[ -f "./$PRIMARY-dpdk-eal-vdev.arg" ]]; then
-    VDEV_ARG="`cat ./$PRIMARY-dpdk-eal-vdev.arg`"
+if [[ -f "./$PRIMARY.dpdk-eal-vdev.arg" ]]; then
+    VDEV_ARG="`cat ./$PRIMARY.dpdk-eal-vdev.arg`"
 else
     echo "There was a problem fetching the DPDK EAL vdev argument for $PRIMARY"
-    echo "Reach out to the maintainer and share your logs."
+    ./display-maintainer-info.sh
     exit -1
 fi
 
