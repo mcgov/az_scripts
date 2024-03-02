@@ -1,24 +1,29 @@
 # how to use this?
+
+## to build DPDK and rdma-core from source
 ./dpdk-test-setup.ubuntu.sh
-# then...
+## or to use apt-get to install dpdk
+./dpdk-test-setup.ubuntu.sh --use-package-manager
+
+## then...
 ./pps-dpdk-testpmd.sh txonly 
 
-# or: 
-#on the sender:
+# or to run a send/receive test: 
+## on the sender:
 ./pps-dpdk-testpmd.sh txonly x.x.x.x y.y.y.y
 
-# on the receiver:
+## on the receiver:
 ./pps-dpdk-testpmd.sh rxonly
 
-# useful environment vairables and their defaults:
-    # dpdk build from source.
+# Note: useful environment vairables and their defaults:
+## dpdk build from source.
     DPDK_GIT_SOURCE="https://github.com/DPDK/dpdk.git"
     DPDK_GIT_REF="v23.11"
     
-    #rdma-core downloads a tarball from github
+## rdma-core downloads a tarball from github
     RDMA_CORE_VERSION="49.1"
     
-    # git tree and ref for kernel-install.sh
-    # note: note run by default
+## git tree and ref for kernel-install.sh
+### note: not run by default
     LINUIX_GIT_SOURCE="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
     LINUX_GIT_REFERENCE="v6.4"

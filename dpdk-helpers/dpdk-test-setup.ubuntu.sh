@@ -49,10 +49,6 @@ else
     echo "MANA was not detected."
 fi
 
-echo "Enabling hugepages (2MB)..."
-for numa_hugepage in $(ls -1  /sys/devices/system/node/node*/hugepages/hugepages-2048kB/nr_hugepages); do
-    echo 1024 | sudo tee $numa_hugepage
-    assert_success
-done
+./enable-hugepages-2mb.sh
 
 echo "Test setup is complete! Run ./pps-dpdk-testpmd-send.sh"

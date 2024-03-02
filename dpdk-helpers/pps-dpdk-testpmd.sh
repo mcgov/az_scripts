@@ -61,10 +61,13 @@ else
     exit -1
 fi
 
+# check hugepages before starting...
+./enable-hugepages-2mb.sh
+
 RUN_DPDK_CMD="sudo timeout -s INT 120 dpdk-testpmd -l 1-$LAST_CORE $VDEV_ARG -- --forward-mode=$FWDMODE --auto-start --nb-cores=$FWD_CORES  --txd=128 --rxd=128 --txq=32 --rxq=32 --stats 2  $SENDER_IP_ARG"
 echo $RUN_DPDK_CMD | tee -a ./rerun-dpdk-testpmd
 
 # MANA multiple queue test (example assumes > 64 cores)
 $RUN_DPDK_CMD
 
-echo "NOTE: cat ./rerun-dpdk-testpmd for the testpmd command for future re-runs before rebooting."
+echo "Run complete!"
