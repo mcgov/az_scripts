@@ -1,4 +1,6 @@
 #! /bin/bash
+DPDK_APP_PATH=$1
+DPDK_PORT_CONFIG=$2
 
 function assert_success {
     if [ $? -ne 0 ]; then
@@ -60,6 +62,6 @@ echo "Use $VDEV_ARG for l3fwd EAL argument"
 # TODO: wrong command
 
 echo "Running multiple queue test, needs >= 8 cores"
-#echo sudo dpdk-testpmd -l 1-9 $VDEV_ARG -- --forward-mode=txonly --auto-start --nb-cores=8  --txd=128 --rxd=128 --txq=4 --rxq=4 --stats 2
-# MANA multiple queue test (example assumes > 9 cores)
-#sudo timeout -s INT 10 dpdk-testpmd -l 1-9 $VDEV_ARG -- --forward-mode=txonly --auto-start --nb-cores=8  --txd=128 --rxd=128 --txq=4 --rxq=4 --stats 2
+DPDK_COMMAND="sudo timeout 300 $DPDK_APP_PATH -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=\"$DPDK_PORT_CONFIG\" --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype"
+echo $DPDK_COMMAND >> rerun_l3fwd
+$DPDK_COMMAND
