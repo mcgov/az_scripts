@@ -1,6 +1,6 @@
 #! /bin/bash
+
 DPDK_APP_PATH=$1
-DPDK_PORT_CONFIG=$2
 
 function assert_success {
     if [ $? -ne 0 ]; then
@@ -60,8 +60,18 @@ VDEV_ARG="--vdev=$BUS_INFO,$MAC_INFO"
 
 echo "Use $VDEV_ARG for l3fwd EAL argument"
 # TODO: wrong command
+let LAST_CORE=1
+QUEUE_CONFIG=""
+for q in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do 
+    if [[ -z "$QUEUE_CONFIG" ]]; then
+        QUEUE_CONFIG="($q,$LAST_CORE,2),($q,$LAST_CORE,3)";
+    else
+        QUEUE_CONFIG="$QUEUE_CONFIG,($q,$LAST_CORE,2),($q,$LAST_CORE,3)";
+    fi
+    let LAST_CORE=$LAST_CORE+1;
+done
 
 echo "Running multiple queue test, needs >= 8 cores"
-DPDK_COMMAND="sudo timeout 300 $DPDK_APP_PATH -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=\"$DPDK_PORT_CONFIG\" --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype"
-echo $DPDK_COMMAND >> rerun_l3fwd
+DPDK_COMMAND="sudo timeout 300 $DPDK_APP_PATH -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=\"$QUEUE_CONFIG\" --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype"
+echo $DPDK_COMMAND | tee ./rerun_l3fwd
 $DPDK_COMMAND
