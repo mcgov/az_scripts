@@ -1,7 +1,7 @@
 #! /bin/pwsh
-parameters(
+param(
     [string] $SshPublicKey,
-    [System.Collections.Hashtable] $AvSetTags = @{},
+    [System.Collections.Hashtable] $AvSetTags = @{}
 )
 
 # az login
