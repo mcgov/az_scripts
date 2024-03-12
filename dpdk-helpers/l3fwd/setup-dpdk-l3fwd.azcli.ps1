@@ -97,44 +97,51 @@ function ForceMarketplaceUrnFormat([string] $imageName){
 
 
 # make our RG
+Write-Host "Creating resource group $rgname"
 az group create --location $region --resource-group $rgname; AssertSuccess
 # Make our availability set
+write-host "Creating avset $avname"
 az vm availability-set create -n $avname -g $rgname --platform-fault-domain-count 1 --platform-update-domain-count 1 --tags @AvSetTags
 
 # make our network and nsg
+write-host "Creating vnet and NSG..."
 az network vnet create --resource-group $rgname --name $vnet; AssertSuccess
 az network nsg create -n $nsg -g $rgname -l westus3; AssertSuccess
 
 # create the routing tables, will fill out with rules to ban traffic
 # jumping between subnets without going to forwarder VM first 
+write-host "Creating routing tables..."
 az network route-table create -n $route_0 -g $rgname; AssertSuccess
 az network route-table create -n $route_a -g $rgname; AssertSuccess
 az network route-table create -n $route_b -g $rgname; AssertSuccess
 
 # create the subnets 
+write-host "Creating subnets..."
 az network vnet subnet create --resource-group $rgname --vnet-name test-vnet -n $subnet_0 --address-prefix '10.0.0.0/24' --network-security-group $nsg --route-table $route_0 ; AssertSuccess
 az network vnet subnet create --resource-group $rgname --vnet-name test-vnet -n $subnet_a --address-prefix '10.0.1.0/24' --network-security-group $nsg --route-table $route_a; AssertSuccess
 az network vnet subnet create --resource-group $rgname --vnet-name test-vnet -n $subnet_b  --address-prefix '10.0.2.0/24' --network-security-group $nsg --route-table $route_b; AssertSuccess
 
 # create the NICs we'll use on our VMs and assign them to the subnets
-
+write-host "Creating mgmt nics..."
 foreach ($i in 0,1,2){
     $id = $i + 4; # Note: need to add some offset the ip addresses.
     $ip_address = $subnet_0_prefix + '.' + $id
     az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $rgname --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet; AssertSuccess
 }
+write-host "Creating client-side nics..."
 foreach ($i in 0,1){
     $id = $i + 4; 
     $ip_address = $subnet_a_prefix + '.' + $id
     az network nic create --private-ip-address $ip_address -n snd-nic-vm-$i -g $rgname --accelerated-networking 1 --subnet $subnet_a --vnet-name $vnet; AssertSuccess
 }
 # create the receiver nics as 0 , 2 to let the VM names match up w the subnets.
+write-host "Creating server-side nics..."
 foreach ($i in 0,2){
     $id = $i + 4;
     $ip_address = $subnet_b_prefix + '.' + $id
     az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $rgname --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet; AssertSuccess
 }
-
+write-host "Creating routing rules..."
 # drop all traffic for mgmt subnet subnet_0
 az network route-table route create -g $rgname --name $subnet_0_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_0 ; AssertSuccess
 az network route-table route create -g $rgname --name $subnet_a_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_a; AssertSuccess
@@ -152,13 +159,17 @@ az network route-table route create -g $rgname --name $subnet_a_drop_b --address
 # and all other traffic from b to a
 az network route-table route create -g $rgname --name $subnet_b_drop_a --address-prefix $a_first_hop --next-hop-type None --route-table-name $route_b; AssertSuccess
 
+write-host "Creating VMs..."
 # Create the VMs
 $imageUrn = ForceMarketplaceUrnFormat($image)
 # forwarder gets a nic on each subnet
+write-host "Creating forwarder..."
 $mgmtVm = az vm create -n $fwd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0; AssertSuccess
 # sender gets a mgmt nic and a nic on subnet a
+write-host "Creating client..."
 $sndVm = az vm create -n $snd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-1 snd-nic-vm-1; AssertSuccess
 # receiver gets a mgmt nic and a nic on subnet b
+write-host "Creating server..."
 $rcvVM = az vm create -n $rcv_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-2 rcv-nic-vm-2; AssertSuccess
 
 # I don't use the results but I think this is a neat trick, feel free to investigate it more.
@@ -167,33 +178,42 @@ $mgmtVM = $mgmtVM | ConvertFrom-Json
 $rcvVM = $rcvVM | ConvertFrom-Json
 $sndVM = $sndVM | ConvertFrom-Json
 
+write-host "Setting up forwarder..."
 # add a data disk to the fwder to compile rdma-core and dpdk
 az vm disk attach -g $rgname --vm-name $fwd_vm_name --name $fwd_build_disk --size-gb 128 --new
 # make the data disk parition and mark it r/w
+write-host "Formatting build data disk..."
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/sdc; mkdir /tmp/build; sudo mount /dev/sdc /tmp/build; sudo chmod +rw /tmp/build; " ; AssertSuccess
 
 # install setup stuff
+write-host "Installing build tools on forwarder..."
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo apt-get update -y -q && DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q git build-essential python3-pip" ; AssertSuccess
-
+write-host "Installing sockperf (client)..."
 az vm run-command invoke --resource-group $rgname  -n $snd_vm_name  --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo apt-get update -y -q && DEBIAN_FRONTEND=noninteractive sudo apt-get -y -q install sockperf"
-
+write-host "Installing sockperf (server)..."
 az vm run-command invoke --resource-group $rgname  -n $rcv_vm_name  --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo apt-get update -y -q && DEBIAN_FRONTEND=noninteractive sudo apt-get -y -q install sockperf"
 
 # clone the az scripts repo
+write-host "Cloning az_scripts repo..."
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive git clone $az_scripts_git $build_disk_dir/az_scripts" ; AssertSuccess
 
 
 # mark scripts executable and run the setup
+write-host "Running DPDK installation..."
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers; chmod +x ./*.sh; ./dpdk-test-setup.ubuntu.sh" ; AssertSuccess
 # make the l3fwd rules files. NOTE: not sure this works as expected yet.
+write-host "Creating l3fwd rules files..."
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; chmod +x ./*.sh; ./create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" ; AssertSuccess
 # start the forwarder
+write-host "Running DPDK l3fwd (async)..."
 $l3fwd_job = start-job -ScriptBlock { az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./run-dpdk-l3fwd.sh $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples/dpdk-l3fwd" ; }
 # start the receiver
+write-host "Starting server (async)..."
 $recevier_job = start-job -ScriptBlock { az vm run-command invoke --resource-group $rgname  -n $rcv_vm_name  --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo timeout 1200 sockperf server --tcp -i $subnet_b_rcv_ip" }
 # start the sender
+write-host "Starting client..."
 az vm run-command invoke --resource-group $rgname  -n $snd_vm_name  --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo sockperf ping-pong --tcp --full-rtt -i $subnet_b_rcv_ip"
-
+write-host "Stopping forwarder and server.."
 get-job | stop-job
 
 # NOTE: add tip stuff and availability set option
