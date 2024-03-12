@@ -72,6 +72,6 @@ for q in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
 done
 
 echo "Running multiple queue test, needs >= 8 cores"
-DPDK_COMMAND="sudo timeout 300 $DPDK_APP_PATH -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=\"$QUEUE_CONFIG\" --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype"
+DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_PATH -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=\"$QUEUE_CONFIG\" --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype"
 echo $DPDK_COMMAND | tee ./rerun_l3fwd
 $DPDK_COMMAND
