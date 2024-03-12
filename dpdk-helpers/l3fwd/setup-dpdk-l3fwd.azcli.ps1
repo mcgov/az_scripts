@@ -155,11 +155,11 @@ az network route-table route create -g $rgname --name $subnet_b_drop_a --address
 # Create the VMs
 $imageUrn = ForceMarketplaceUrnFormat($image)
 # forwarder gets a nic on each subnet
-$mgmtVm = az vm create -n $fwd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshKey" --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0; AssertSuccess
+$mgmtVm = az vm create -n $fwd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0; AssertSuccess
 # sender gets a mgmt nic and a nic on subnet a
-$sndVm = az vm create -n $snd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshKey" --nics mgmt-nic-vm-1 snd-nic-vm-1; AssertSuccess
+$sndVm = az vm create -n $snd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-1 snd-nic-vm-1; AssertSuccess
 # receiver gets a mgmt nic and a nic on subnet b
-$rcvVM = az vm create -n $rcv_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshKey" --nics mgmt-nic-vm-2 rcv-nic-vm-2; AssertSuccess
+$rcvVM = az vm create -n $rcv_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-2 rcv-nic-vm-2; AssertSuccess
 
 # I don't use the results but I think this is a neat trick, feel free to investigate it more.
 # pwsh json handling is great! Usually!
