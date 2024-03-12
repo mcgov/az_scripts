@@ -1,0 +1,116 @@
+# VM will be called dpdk-mana
+
+
+name: demo-test
+include:
+  # include base azure runbook
+  # assumes you used the lisa-install-first-time.sh script and checked out
+  # lisa in this same folder.
+  - path: ./lisa/microsoft/runbook/azure.yml
+transformer:
+  ##allow csv list of marketplace images
+  - type: to_list
+    items:
+      images: $(marketplace_image)
+    rename:
+      to_list_images: images_list
+
+combinator:
+  type: grid
+  items:
+    - name: marketplace_image
+      value: $(images_list)
+
+platform:
+  - type: azure
+    # provide a path to a test .ssh/id_rsa
+    admin_private_key_file: $(admin_private_key_file)
+    # 'always' 'failed' or 'no'
+    keep_environment: $(keep_environment) 
+
+    azure:
+      resource_group_name:
+        $(rg_name)
+        # LSG TEST AUTOMATION ONLY:
+        # 0cc2a67a-58b9-4e4f-98a8-bfa46a28e896
+      subscription_id: $(subscription_id)
+      # LSG Dev & Test
+      # # e8163038-eb55-4108-b164-1d0563f63588
+      
+      # if not running in tip, comment out these availability set things 
+      availability_set_tags:
+        #   #Tip Session Details
+        #   #hardcode or pass from the cmdline with this variable  
+        TipNode.SessionId:  $(tip_session_id)
+
+      # if not running in tip, comment out these availability set things
+      availability_set_properties:
+        platformFaultDomainCount: 1
+        platformUpdateDomainCount: 1
+        internalData:
+          # set TiP cluster
+          pinnedFabricCluster: $(cluster) # ex: sn4prdapp39
+    
+    # set these for DPDK tests to avoid sku headaches when running with boost
+    ignored_capability:
+        - Gpu
+        - Infiniband
+    requirement:
+      azure:
+        vm_size: $(vm_size)
+        marketplace: $(marketplace_image) #ex: RedHat RHEL 9_2 latest
+        # optional, use a VHD instead
+        #vhd: $(vhd)
+        location: westus3
+        
+        # # uncomment for Boost SKUs
+        #maximize_capability: true
+        
+        #osdisk_size_in_gb: 80
+      
+      disk:  
+        # # uncomment for Boost SKUs
+        # disk_controller_type: NVMe
+        
+        # # uncomment for Boost SKUs
+        # disk_type: PremiumSSDLRS
+
+        min: 1
+        data_disk_size:
+          min: 80  # gb, go big for builds
+      network_interface:
+        nic_count:
+          min: 2
+
+concurrency: 1 #$(concurrency)
+testcase:
+  - criteria:
+      name: $(test_case_name) 
+
+
+
+variable:
+  - name: tip_session_id
+    value: ""
+
+# # uncomment to build DPDK from source, but if DPDK is installed in the image (it is for this mana-dpdk one)
+# # the build will be skipped.
+  - name: dpdk_branch
+    value: $(dpdk_version)  #mcgov/mana-tso
+    is_case_visible: True
+  
+  - name: rdma_core_source
+    value: https://github.com/linux-rdma/rdma-core/releases/download/v49.1/rdma-core-49.1.tar.gz
+    is_case_visible: True
+
+  - name: dpdk_source
+    value: https://github.com/DPDK/dpdk.git
+    is_case_visible: True
+
+  - name: dpdk_test_duration
+    value: 30
+    is_case_visible: True
+  
+  - name: dpdk_enforce_strict_threshold
+    value: True
+    is_case_visible: True
