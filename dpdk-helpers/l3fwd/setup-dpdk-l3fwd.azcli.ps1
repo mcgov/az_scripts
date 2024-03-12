@@ -1,4 +1,8 @@
 #! /bin/pwsh
+parameters(
+    [string] $SshPublicKey,
+    [System.Collections.Hashtable] $AvSetTags = @{},
+)
 
 # az login
 # az account set --subscription "Your Subscription Name"
@@ -10,6 +14,7 @@
 
 $os_image = "canonical 0001-com-ubuntu-server-jammy 22_04-lts-gen2 latest"
 $rgname = 'mcgov-fwd-example'
+$avname = "$rgname-avset"
 $region = 'westus3'
 $username = "azureuser"
 $vnet = 'test-vnet'
@@ -93,6 +98,9 @@ function ForceMarketplaceUrnFormat([string] $imageName){
 
 # make our RG
 az group create --location $region --resource-group $rgname; AssertSuccess
+# Make our availability set
+az vm availability-set create -n $avname -g $rgname --platform-fault-domain-count 1 --platform-update-domain-count 1 --tags @AvSetTags
+
 # make our network and nsg
 az network vnet create --resource-group $rgname --name $vnet; AssertSuccess
 az network nsg create -n $nsg -g $rgname -l westus3; AssertSuccess
@@ -147,11 +155,11 @@ az network route-table route create -g $rgname --name $subnet_b_drop_a --address
 # Create the VMs
 $imageUrn = ForceMarketplaceUrnFormat($image)
 # forwarder gets a nic on each subnet
-$mgmtVm = az vm create -n $fwd_vm_name -g $rgname --size $vmSize --image $imageUrn --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0; AssertSuccess
+$mgmtVm = az vm create -n $fwd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshKey" --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0; AssertSuccess
 # sender gets a mgmt nic and a nic on subnet a
-$sndVm = az vm create -n $snd_vm_name -g $rgname --size $vmSize --image $imageUrn --nics mgmt-nic-vm-1 snd-nic-vm-1; AssertSuccess
+$sndVm = az vm create -n $snd_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshKey" --nics mgmt-nic-vm-1 snd-nic-vm-1; AssertSuccess
 # receiver gets a mgmt nic and a nic on subnet b
-$rcvVM = az vm create -n $rcv_vm_name -g $rgname --size $vmSize --image $imageUrn --nics mgmt-nic-vm-2 rcv-nic-vm-2; AssertSuccess
+$rcvVM = az vm create -n $rcv_vm_name -g $rgname --size $vmSize --image $imageUrn --ssh-key-values "$SshKey" --nics mgmt-nic-vm-2 rcv-nic-vm-2; AssertSuccess
 
 # I don't use the results but I think this is a neat trick, feel free to investigate it more.
 # pwsh json handling is great! Usually!
@@ -178,14 +186,16 @@ az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id 
 # mark scripts executable and run the setup
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers; chmod +x ./*.sh; ./dpdk-test-setup.ubuntu.sh" ; AssertSuccess
 # make the l3fwd rules files. NOTE: not sure this works as expected yet.
-az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers; chmod +x ./*.sh; ./create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" ; AssertSuccess
+az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; chmod +x ./*.sh; ./create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" ; AssertSuccess
 # start the forwarder
-$l3fwd_job = start-job -ScriptBlock { az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers; ./run-dpdk-l3fwd.sh $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples/dpdk-l3fwd" ; }
+$l3fwd_job = start-job -ScriptBlock { az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./run-dpdk-l3fwd.sh $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples/dpdk-l3fwd" ; }
 # start the receiver
 $recevier_job = start-job -ScriptBlock { az vm run-command invoke --resource-group $rgname  -n $rcv_vm_name  --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo timeout 1200 sockperf server --tcp -i $subnet_b_rcv_ip" }
 # start the sender
 az vm run-command invoke --resource-group $rgname  -n $snd_vm_name  --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo sockperf ping-pong --tcp --full-rtt -i $subnet_b_rcv_ip"
 
 get-job | stop-job
+
+# NOTE: add tip stuff and availability set option
 
 # az group delete -g $rgname ; # answer yes
