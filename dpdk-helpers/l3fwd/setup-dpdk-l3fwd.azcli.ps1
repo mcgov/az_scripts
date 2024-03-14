@@ -183,8 +183,17 @@ write-host "Setting up forwarder..."
 az vm disk attach -g $rgname --vm-name $fwd_vm_name --name $fwd_build_disk --size-gb 128 --new
 # make the data disk parition and mark it r/w
 write-host "Formatting build data disk..."
-az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/sdc; mkdir /tmp/build; sudo mount /dev/sdc /tmp/build; sudo chmod +rw /tmp/build; " ; AssertSuccess
-
+# oof. Ugly.
+try {
+    az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/sdb; mkdir /tmp/build; sudo mount /dev/sdb /tmp/build; sudo chmod +rw /tmp/build; " ; AssertSuccess
+} catch {
+    try {
+        az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/sdc; mkdir /tmp/build; sudo mount /dev/sdc /tmp/build; sudo chmod +rw /tmp/build; " ; AssertSuccess
+    } catch {
+        write-host "Could not find data disk after attaching it! Tried /dev/sdb and /dev/sdc."
+        exit -1
+    }
+}
 # install setup stuff
 write-host "Installing build tools on forwarder..."
 az vm run-command invoke --resource-group $rgname  -n $fwd_vm_name --command-id "RunShellScript" --script "DEBIAN_FRONTEND=noninteractive sudo apt-get update -y -q && DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q git build-essential python3-pip" ; AssertSuccess
