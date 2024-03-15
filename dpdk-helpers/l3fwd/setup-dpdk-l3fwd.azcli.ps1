@@ -164,7 +164,7 @@ az network route-table route create -g $ResourceGroupName --name $subnet_b_drop_
 az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_a_route_b_em --next-hop-type VirtualAppliance --route-table-name $route_a --next-hop-ip-address $subnet_a_fwd_ip; AssertSuccess($ResourceGroupName)
 
 # fwd all traffic from a to b to fwder on b
-az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_b_route_a_em --next-hop-type VirtualAppliance --route-table-name $route_b --next-hop-ip-address $subnet_b_fwd_ip; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_b_fwd --address-prefix $subnet_b_route_a_em --next-hop-type VirtualAppliance --route-table-name $route_b --next-hop-ip-address $subnet_b_fwd_ip; AssertSuccess($ResourceGroupName)
 
 # drop all other traffic from a to b
 az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_b --address-prefix $b_first_hop --next-hop-type None --route-table-name $route_a ; AssertSuccess($ResourceGroupName)
