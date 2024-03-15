@@ -200,8 +200,13 @@ write-host "Formatting build data disk..."
 # Warning: Ugly terrible code
 $success = $false
 foreach ($disk in "sdb","sdc"){
-    $result = az vm run-command invoke --resource-group $ResourceGroupName  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/$disk && mkdir $build_disk_dir && sudo mount /dev/$disk $build_disk_dir && sudo chmod +rw $build_disk_dir; " ; AssertSuccess($ResourceGroupName)
-    $message = ($result | ConvertFrom-Json).$message
+    $result = az vm run-command invoke --resource-group $ResourceGroupName  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/$disk && mkdir $build_disk_dir && sudo mount /dev/$disk $build_disk_dir && sudo chmod +rw $build_disk_dir; ";
+    AssertSuccess($ResourceGroupName)
+    if (-not $result){
+        write-error "unexplained lack of output... hmm... rg name was $ResourceGroupName"
+        exit -1
+    }
+    $message = ($result | ConvertFrom-Json).message
     if ($message.contains("/dev/$disk already mounted or mount point busy")) {
         write-host "$disk was a bad choice... let's try again. "
     } else {
@@ -211,7 +216,7 @@ foreach ($disk in "sdb","sdc"){
 }
 if (-not $success){
     write-error "Could not find the data disk after adding it. If you hit this error, complain to github.com/mcgov"
-    write-host "bailing... leftover rg name is: $rg"
+    write-host "bailing... leftover rg name is: $ResourceGroupName"
     exit -1;
 }
 
