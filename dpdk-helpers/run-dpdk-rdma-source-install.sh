@@ -3,7 +3,7 @@
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
-        exit -1
+        exit 1
     fi
 }
 
@@ -20,3 +20,4 @@ bash ./install-rdma-core.sh
 assert_success
 bash ./install-dpdk.ubuntu.sh
 assert_success
+exit 0;

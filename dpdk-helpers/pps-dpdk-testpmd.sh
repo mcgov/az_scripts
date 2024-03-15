@@ -1,4 +1,12 @@
 #! /bin/bash
+# author: mamcgove @microsoft.com
+
+# run a packet-per-second test with dpdk-testpmd.
+# this script sets up a test using the netvsc pmd
+# you can use the same script to start a sender and receiver on two VMs
+# `pps-dpdk-testpmd.sh rxonly` on the receiver
+# `pps-dpdk-testpmd.sh txonly $SENDER_IP,$RECEIVER_IP` on the sender
+
 
 function assert_success {
     if [ $? -ne 0 ]; then
@@ -6,6 +14,8 @@ function assert_success {
         exit -1
     fi
 }
+
+## Parse Arguments
 FWDMODE="$1" # should be rxonly or txonly
 if [[ -z "$FWDMODE" ]]; then
     FWDMODE="txonly"
@@ -20,6 +30,7 @@ else
     SENDER_IP_ARG="--tx-ip=\"$SEND_IP,$RECV_IP\""
 fi
 
+## Check number of cores is >= 64
 echo "Running multiple queue test, needs >= 64 cores"
 # get core count, calculcate core argument (fwd cores + 1) and # of forwarding cores to use
 let CPUCOUNT=`lscpu | grep CPU\(s\): | awk  '{ print $2 }'`
@@ -30,10 +41,11 @@ elif [[ $CPUCOUNT -gt $SIXFOUR ]]; then
     let FWD_CORES=64
 else
     echo "DPDK multi-queue test needs >= 64 cores to run. 64 uses 32 cores and 32 queues, >64 uses 64 cores and 32 queues."
-    exit -1
+    exit 1
 fi
 let LAST_CORE=$FWD_CORES+1
 
+## Set up DPDK netvsc pmd for eth1
 PRIMARY="eth1"
 echo "running netvsc pmd setup. Must re-run "
 if [[ -e "/sys/class/net/$PRIMARY" ]]; then
@@ -46,7 +58,7 @@ else
     if [[ -z "$LOWER" ]]; then
         echo "Note file: ./$PRIMARY.lower.nic not found. Setup is broken."
         ./display-maintainer-info.sh
-        exit -1
+        exit 1
     fi
     ip link set $LOWER down
 fi
@@ -58,16 +70,18 @@ if [[ -f "./$PRIMARY.dpdk-eal-vdev.arg" ]]; then
 else
     echo "There was a problem fetching the DPDK EAL vdev argument for $PRIMARY"
     ./display-maintainer-info.sh
-    exit -1
+    exit 1
 fi
 
-# check hugepages before starting...
+## Enable hugepages before starting testpmd
 ./enable-hugepages-2mb.sh
 
+# log the testpmd command for future re-runs
 RUN_DPDK_CMD="sudo timeout -s INT 120 dpdk-testpmd -l 1-$LAST_CORE $VDEV_ARG -- --forward-mode=$FWDMODE --auto-start --nb-cores=$FWD_CORES  --txd=128 --rxd=128 --txq=32 --rxq=32 --stats 2  $SENDER_IP_ARG"
 echo $RUN_DPDK_CMD | tee -a ./rerun-dpdk-testpmd
 
-# MANA multiple queue test (example assumes > 64 cores)
+## Start MANA multiple queue test (example assumes > 64 cores)
 $RUN_DPDK_CMD
 
 echo "Run complete!"
+exit 0;
