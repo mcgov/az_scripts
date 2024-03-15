@@ -203,15 +203,21 @@ az vm disk attach -g $ResourceGroupName --vm-name $fwd_vm_name --name $fwd_build
 # make the data disk parition and mark it r/w
 write-host "Formatting build data disk..."
 # Warning: Ugly terrible code
-try {
-    az vm run-command invoke --resource-group $ResourceGroupName  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/sdb; mkdir /tmp/build; sudo mount /dev/sdb /tmp/build; sudo chmod +rw /tmp/build; " ; AssertSuccess($ResourceGroupName)
-} catch {
-    try {
-        az vm run-command invoke --resource-group $ResourceGroupName  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/sdc; mkdir /tmp/build; sudo mount /dev/sdc /tmp/build; sudo chmod +rw /tmp/build; " ; AssertSuccess($ResourceGroupName)
-    } catch {
-        write-host "Could not find data disk after attaching it! Tried /dev/sdb and /dev/sdc."
-        exit -1
+$success = $false
+foreach ($disk in "sdb","sdc"){
+    $result = az vm run-command invoke --resource-group $ResourceGroupName  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/$disk && mkdir $build_disk_dir && sudo mount /dev/$disk $build_disk_dir && sudo chmod +rw $build_disk_dir; " ; AssertSuccess($ResourceGroupName)
+    $message = ($result | ConvertFrom-Json).$message
+    if ($message.contains("/dev/$disk already mounted or mount point busy")) {
+        write-host "$disk was a bad choice... let's try again. "
+    } else {
+        $success = $true
+        break;
     }
+}
+if (-not $success){
+    write-error "Could not find the data disk after adding it. If you hit this error, complain to github.com/mcgov"
+    write-host "bailing... leftover rg name is: $rg"
+    exit -1;
 }
 
 # install setup stuff
