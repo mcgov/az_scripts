@@ -4,7 +4,7 @@ param(
     [string] $SshPublicKey,
     [string] $Region,
     [System.Collections.Hashtable] $AvSetTags = @{},
-    [boolean] $TryRunTest = $false,
+    [switch] $TryRunTest,
     [switch] $cleanupFailure
 )
 
