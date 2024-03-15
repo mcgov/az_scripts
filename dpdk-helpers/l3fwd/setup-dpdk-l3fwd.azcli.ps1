@@ -58,8 +58,8 @@ $subnet_a_fwd_ip = $subnet_a_prefix + '.4'
 $subnet_b_fwd_ip = $subnet_b_prefix + '.4'
 $subnet_a_snd_ip = $subnet_a_prefix + '.5'
 $subnet_b_rcv_ip = $subnet_b_prefix + '.6'
-$subnet_b_dest_a_ip_prefix = $subnet_a_snd_ip + '/32'
-$subnet_a_dest_b_ip_prefix = $subnet_b_rcv_ip + '/32'
+$subnet_b_route_a_em = $subnet_a_snd_ip + '/32'
+$subnet_a_route_b_em = $subnet_b_rcv_ip + '/32'
 
 $fwd_vm_name = "forward"
 $snd_vm_name = "sender"
@@ -166,10 +166,10 @@ az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_
 az network route-table route create -g $ResourceGroupName --name $subnet_b_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_b; AssertSuccess($ResourceGroupName)
 
 # fwd traffic from b to a to fwder on a
-az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_b_dest_a_ip_prefix --next-hop-type VirtualAppliance --route-table-name $route_a --next-hop-ip-address $subnet_a_fwd_ip; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_a_route_b_em --next-hop-type VirtualAppliance --route-table-name $route_a --next-hop-ip-address $subnet_a_fwd_ip; AssertSuccess($ResourceGroupName)
 
 # fwd all traffic from a to b to fwder on b
-az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_b_dest_a_ip_prefix --next-hop-type VirtualAppliance --route-table-name $route_b --next-hop-ip-address $subnet_b_fwd_ip; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_b_route_a_em --next-hop-type VirtualAppliance --route-table-name $route_b --next-hop-ip-address $subnet_b_fwd_ip; AssertSuccess($ResourceGroupName)
 
 # drop all other traffic from a to b
 az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_b --address-prefix $b_first_hop --next-hop-type None --route-table-name $route_a ; AssertSuccess($ResourceGroupName)
