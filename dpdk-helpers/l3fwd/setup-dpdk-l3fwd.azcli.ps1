@@ -200,13 +200,14 @@ write-host "Formatting build data disk..."
 # Warning: Ugly terrible code
 $success = $false
 foreach ($disk in "sdb","sdc"){
+    write-host "checking /dev/$disk..."
     $result = az vm run-command invoke --resource-group $ResourceGroupName  -n $fwd_vm_name --command-id "RunShellScript" --script "sudo mkfs.ext4 /dev/$disk && mkdir $build_disk_dir && sudo mount /dev/$disk $build_disk_dir && sudo chmod +rw $build_disk_dir; ";
     AssertSuccess($ResourceGroupName)
     if (-not $result){
         write-error "unexplained lack of output... hmm... rg name was $ResourceGroupName"
         exit -1
     }
-    $message = ($result | ConvertFrom-Json).message
+    $message = ($result | ConvertFrom-Json).value.message
     if ($message.contains("/dev/$disk already mounted or mount point busy")) {
         write-host "$disk was a bad choice... let's try again. "
     } else {
