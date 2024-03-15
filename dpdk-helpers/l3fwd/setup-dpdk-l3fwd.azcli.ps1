@@ -19,7 +19,6 @@ param(
 $os_image = "canonical 0001-com-ubuntu-server-jammy 22_04-lts-gen2 latest"
 $ResourceGroupName = $ResourceGroupName
 $avname = "$ResourceGroupName-avset"
-$username = "azureuser"
 $vnet = 'test-vnet'
 $nsg = 'test-nsg'; 
 $route_0 = 'route-0'; # mgmt network
@@ -64,10 +63,6 @@ $subnet_a_route_b_em = $subnet_b_rcv_ip + '/32'
 $fwd_vm_name = "forward"
 $snd_vm_name = "sender"
 $rcv_vm_name = "receive"
-
-$subnet_a_route = 'send-route'
-$subnet_b_route = 'rcv-route'
-$subnet_0_route = 'mgmt-route'
 
 # drop all traffic destined for subnet 0 on all subnets
 $mgmt_first_hop = $subnet_0_prefix + '.0/24'
