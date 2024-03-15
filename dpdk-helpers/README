@@ -15,7 +15,7 @@
 ## on the receiver:
 ./pps-dpdk-testpmd.sh rxonly
 
-# Note: useful environment vairables and their defaults:
+# Note: useful environment variables and their defaults:
 ## dpdk build from source.
     DPDK_GIT_SOURCE="https://github.com/DPDK/dpdk.git"
     DPDK_GIT_REF="v23.11"
