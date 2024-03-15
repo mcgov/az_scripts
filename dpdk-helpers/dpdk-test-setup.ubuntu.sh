@@ -3,19 +3,17 @@
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
-        exit -1
+        exit 1
     fi
 }
 
 function check_and_append {
     #check that it's set
-    cat $1 | grep "$2"
     #append if it wasn't present
-    if [ $? -ne 0 ]; then
-        echo "$2" >> $1
+    if ! grep "$2" < "$1" ; then
+        echo "$2" >> "$1"
     fi;
 }
-
 export DEBIAN_FRONTEND=noninteractive
 
 # install dependencies for building dpdk and rdma-core
@@ -39,7 +37,7 @@ echo 'mana_ib' | sudo tee -a /etc/modules
 #   vendor: Microsoft Corporation (1414)
 #   class:  Ethernet Controller (0200)
 #   device: Microsft Azure Network Adapter VF (00ba)
-if [[ -n "`lspci -d 1414:00ba:0200`" ]]; then
+if ! lspci -d 1414:00ba:0200; then
     echo "MANA device is available."
     export USE_MANA=1
     echo "checking for existence of mana driver (might need to install kernel or linux-modules-extra)"

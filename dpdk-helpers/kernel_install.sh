@@ -7,16 +7,15 @@
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
-        exit -1
+        exit 1
     fi
 }
 
 function check_and_append {
     #check that it's set
-    cat $1 | grep "$2"
     #append if it wasn't present
-    if [ $? -ne 0 ]; then
-        echo "$2" >> $1
+    if ! grep "$2" < "$1" ; then
+        echo "$2" >> "$1"
     fi;
 }
 
@@ -34,7 +33,7 @@ sleep 10
 
 # hackey os detection, not for production.
 # tested on 22.04 and RHEL 8.6/9.2
-if [[ -n `which apt` ]]; then
+if command -v apt; then
     export DEBIAN_FRONTEND=noninteractive
     sudo apt update
     DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y \
@@ -44,7 +43,7 @@ if [[ -n `which apt` ]]; then
     flex bison libssl-dev \
     libelf-dev python3-pip dwarves libnuma-dev libpcap-dev
     assert_success
-elif [[ -n `which yum` ]]; then
+elif command -v yum; then
     sudo yum update
     sudo yum -y groupinstall "Development Tools"
     sudo yum install -y cmake gcc libudev-devel \
@@ -52,13 +51,13 @@ elif [[ -n `which yum` ]]; then
      valgrind python3-devel python3-docutils \
      flex bison openssl-devel unzip dwarves \
      elfutils-devel python3-pip meson dwarves libpcap-devel \
-     tar wget dos2unix psmisc kernel-devel-$(uname -r) \
+     tar wget dos2unix psmisc "kernel-devel-$(uname -r)" \
      librdmacm-devel libmnl-devel kernel-modules-extra numactl-devel \
      kernel-headers elfutils-libelf-devel meson ninja-build libbpf-devel
      assert_success
 else
     echo "unsupported os, exiting..."
-    exit -1;
+    exit 1;
 fi
 
 pip3 install pyelftools
@@ -74,7 +73,7 @@ fi
 # Build/install Linux kernel
 git clone $LINUIX_GIT_SOURCE -b $LINUX_GIT_REFERENCE --depth 1
 assert_success
-pushd linux
+pushd linux || ( echo "pushd linux failed: $?"; exit 1)
 yes "" | make oldconfig
 assert_success
 sed -i 's/CONFIG_SYSTEM_REVOCATION_LIST/#CONFIG_SYSTEM_REVOCATION_LIST/g' .config
@@ -90,7 +89,7 @@ sudo make modules_install
 assert_success
 sudo make install
 assert_success
-popd
+popd || (echo "popd failed?"; exit 1)
 
 
 ## NOTE: run manually to genericize if creating an azure sig image
