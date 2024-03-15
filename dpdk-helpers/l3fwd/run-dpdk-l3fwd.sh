@@ -42,9 +42,7 @@ do
     # get MANA device bus info to pass to DPDK
     export BUS_INFO="`ethtool -i $SECONDARY | grep bus-info | awk '{ print $2 }'`"
 
-    # Set MANA interfaces DOWN before starting DPDK
-    sudo ip link set $nic down
-    sudo ip link set $nic down
+
     ## Move synthetic channel to user mode and allow it to be used by NETVSC PMD in DPDK
     DEV_UUID=$(basename $(readlink /sys/class/net/$nic/device))
     echo $DEV_UUID > /sys/bus/vmbus/drivers/hv_netvsc/unbind
@@ -54,6 +52,8 @@ do
     else
         MAC_INFO="$MAC_INFO,mac=$MANA_MAC"
     fi
+    # Set MANA interfaces DOWN before starting DPDK
+    sudo ip link set $SECONDARY down
 done
 
 VDEV_ARG="--vdev=$BUS_INFO,$MAC_INFO"
