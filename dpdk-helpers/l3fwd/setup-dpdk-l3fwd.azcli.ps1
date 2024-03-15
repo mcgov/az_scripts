@@ -254,6 +254,12 @@ az vm run-command invoke --no-wait --resource-group $ResourceGroupName  -n $rcv_
 write-host "Starting client..."
 az vm run-command invoke --resource-group $ResourceGroupName  -n $snd_vm_name  --command-id "RunShellScript" --script "sudo sockperf ping-pong --tcp --full-rtt -i $subnet_b_rcv_ip"
 
+write-host "Starting server (async)..."
+az vm run-command invoke --no-wait --resource-group $ResourceGroupName  -n $rcv_vm_name  --command-id "RunShellScript" --script "timeout 30 ping  $subnet_a_snd_ip";
+# start the sender
+write-host "Starting client..."
+az vm run-command invoke --resource-group $ResourceGroupName  -n $snd_vm_name  --command-id "RunShellScript" --script "timeout 30 ping $subnet_b_rcv_ip"
+
 write-host "Stopping forwarder and server.."
 get-job | stop-job
 
