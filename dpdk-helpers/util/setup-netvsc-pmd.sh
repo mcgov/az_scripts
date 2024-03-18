@@ -3,7 +3,7 @@
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
-        ./display-maintainer-info.sh
+        ./util/display-maintainer-info.sh
         exit 1
     fi
 }

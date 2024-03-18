@@ -26,7 +26,7 @@ elif [[ "$1" == "--help" ]]; then
     exit 0
 else
     sudo apt update
-    ./run-dpdk-rdma-source-install.sh
+    ./util/run-dpdk-rdma-source-install.sh
 fi
 
 # set required drivers to load automatically
@@ -47,6 +47,6 @@ else
     echo "MANA was not detected."
 fi
 
-./enable-hugepages-2mb.sh
+./util/enable-hugepages-2mb.sh
 
 echo "Test setup is complete! Run ./pps-dpdk-testpmd-send.sh"
