@@ -5,7 +5,8 @@ param(
     [string] $Region,
     [System.Collections.Hashtable] $AvSetTags = $null,
     [switch] $TryRunTest,
-    [switch] $cleanupFailure
+    [switch] $cleanupFailure,
+    [switch] $cleanupSuccess
 )
 
 # az login
@@ -310,4 +311,6 @@ Get-Job | Stop-Job
 
 # NOTE: add tip stuff and availability set option
 
-# az group delete -g $ResourceGroupName ; # answer yes
+if ($CleanupSuccess) {
+    az group delete -y -g $ResourceGroupName ; # answer yes
+}
