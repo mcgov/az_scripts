@@ -16,8 +16,8 @@ assert_success
 #       rdma-core and dpdk depend on kernel headers. 
 
 # install rdma-core and dpdk
-bash ./install-rdma-core.sh
+./util/install-rdma-core.sh
 assert_success
-bash ./install-dpdk.ubuntu.sh
+./util/install-dpdk.ubuntu.sh
 assert_success
 exit 0;
