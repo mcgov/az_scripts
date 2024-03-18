@@ -49,4 +49,4 @@ fi
 
 ./util/enable-hugepages-2mb.sh
 
-echo "Test setup is complete! Run ./pps-dpdk-testpmd-send.sh"
+echo "Test setup is complete! Run ./run-pps-dpdk-testpmd.sh"
