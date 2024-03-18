@@ -98,7 +98,8 @@ function ForceMarketplaceUrnFormat([string] $imageName) {
 
 # make our RG
 Write-Host "Creating resource group $ResourceGroupName"
-az group create --location $region --resource-group $ResourceGroupName; AssertSuccess($ResourceGroupName)
+az group create --location $region --resource-group $ResourceGroupName
+AssertSuccess($ResourceGroupName)
 # Make our availability set
 if ($AvSetTags) {
     Write-Host "Creating avset $avname"
@@ -109,7 +110,7 @@ if ($AvSetTags) {
         $TagArgs += @( "$t=" + $AvSetTags[$t] )
     }
     $tags = $TagArgs -join ' '
-    if ($tags.replace('=','') -ne "" ){
+    if ($tags.replace('=', '') -ne '' ) {
         Write-Host "attempting to apply tags: $tags"
         az vm availability-set create -n $avname -g $ResourceGroupName --platform-fault-domain-count 1 --platform-update-domain-count 1 --tags $tags;
         AssertSuccess($ResourceGroupName)
@@ -121,75 +122,107 @@ else {
 
 # make our network and nsg
 Write-Host 'Creating vnet and NSG...'
-az network vnet create --resource-group $ResourceGroupName --name $vnet; AssertSuccess($ResourceGroupName)
-az network nsg create -n $nsg -g $ResourceGroupName -l westus3; AssertSuccess($ResourceGroupName) 
+az network vnet create --resource-group $ResourceGroupName --name $vnet
+AssertSuccess($ResourceGroupName)
+
+az network nsg create -n $nsg -g $ResourceGroupName -l westus3
+AssertSuccess($ResourceGroupName) 
+
 # create the routing tables, will fill out with rules to ban traffic
 # jumping between subnets without going to forwarder VM first 
 Write-Host 'Creating routing tables...'
-az network route-table create -n $route_0 -g $ResourceGroupName; AssertSuccess($ResourceGroupName)
-az network route-table create -n $route_a -g $ResourceGroupName; AssertSuccess($ResourceGroupName)
-az network route-table create -n $route_b -g $ResourceGroupName; AssertSuccess($ResourceGroupName)
+az network route-table create -n $route_0 -g $ResourceGroupName
+AssertSuccess($ResourceGroupName)
+
+az network route-table create -n $route_a -g $ResourceGroupName
+AssertSuccess($ResourceGroupName)
+
+az network route-table create -n $route_b -g $ResourceGroupName
+AssertSuccess($ResourceGroupName)
 
 
 # create the subnets 
 Write-Host 'Creating subnets...'
-az network vnet subnet create --resource-group $ResourceGroupName --vnet-name test-vnet -n $subnet_0 --address-prefix '10.0.0.0/24' --network-security-group $nsg --route-table $route_0 ; AssertSuccess($ResourceGroupName)
-az network vnet subnet create --resource-group $ResourceGroupName --vnet-name test-vnet -n $subnet_a --address-prefix '10.0.1.0/24' --network-security-group $nsg --route-table $route_a; AssertSuccess($ResourceGroupName)
-az network vnet subnet create --resource-group $ResourceGroupName --vnet-name test-vnet -n $subnet_b --address-prefix '10.0.2.0/24' --network-security-group $nsg --route-table $route_b; AssertSuccess($ResourceGroupName)
+az network vnet subnet create --resource-group $ResourceGroupName --vnet-name test-vnet -n $subnet_0 --address-prefix '10.0.0.0/24' --network-security-group $nsg --route-table $route_0 
+AssertSuccess($ResourceGroupName)
+
+az network vnet subnet create --resource-group $ResourceGroupName --vnet-name test-vnet -n $subnet_a --address-prefix '10.0.1.0/24' --network-security-group $nsg --route-table $route_a
+AssertSuccess($ResourceGroupName)
+
+az network vnet subnet create --resource-group $ResourceGroupName --vnet-name test-vnet -n $subnet_b --address-prefix '10.0.2.0/24' --network-security-group $nsg --route-table $route_b
+AssertSuccess($ResourceGroupName)
 
 # create the NICs we'll use on our VMs and assign them to the subnets
 Write-Host 'Creating mgmt nics...'
 foreach ($i in 0, 1, 2) {
     $id = $i + 4; # Note: need to add some offset the ip addresses.
     $ip_address = $subnet_0_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet; AssertSuccess($ResourceGroupName)
+    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet
+    AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating client-side nics...'
 foreach ($i in 0, 1) {
     $id = $i + 4; 
     $ip_address = $subnet_a_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n snd-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_a --vnet-name $vnet; AssertSuccess($ResourceGroupName)
+    az network nic create --private-ip-address $ip_address -n snd-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_a --vnet-name $vnet
+    AssertSuccess($ResourceGroupName)
 }
 # create the receiver nics as 0 , 2 to let the VM names match up w the subnets.
 Write-Host 'Creating server-side nics...'
 foreach ($i in 0, 2) {
     $id = $i + 4;
     $ip_address = $subnet_b_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet; AssertSuccess($ResourceGroupName)
+    az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet
+    AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating routing rules...'
 # drop all traffic for mgmt subnet subnet_0
-az network route-table route create -g $ResourceGroupName --name $subnet_0_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_0 ; AssertSuccess($ResourceGroupName)
-az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_a; AssertSuccess($ResourceGroupName)
-az network route-table route create -g $ResourceGroupName --name $subnet_b_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_b; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_0_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_0 
+AssertSuccess($ResourceGroupName)
+
+az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_a
+AssertSuccess($ResourceGroupName)
+
+az network route-table route create -g $ResourceGroupName --name $subnet_b_drop_0 --address-prefix $mgmt_first_hop --next-hop-type None --route-table-name $route_b
+AssertSuccess($ResourceGroupName)
 
 # fwd traffic from b to a to fwder on a
-az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_a_route_b_em --next-hop-type VirtualAppliance --route-table-name $route_a --next-hop-ip-address $subnet_a_fwd_ip; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_a_fwd --address-prefix $subnet_a_route_b_em --next-hop-type VirtualAppliance --route-table-name $route_a --next-hop-ip-address $subnet_a_fwd_ip
+AssertSuccess($ResourceGroupName)
 
 # fwd all traffic from a to b to fwder on b
-az network route-table route create -g $ResourceGroupName --name $subnet_b_fwd --address-prefix $subnet_b_route_a_em --next-hop-type VirtualAppliance --route-table-name $route_b --next-hop-ip-address $subnet_b_fwd_ip; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_b_fwd --address-prefix $subnet_b_route_a_em --next-hop-type VirtualAppliance --route-table-name $route_b --next-hop-ip-address $subnet_b_fwd_ip
+AssertSuccess($ResourceGroupName)
 
 # drop all other traffic from a to b
-az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_b --address-prefix $b_first_hop --next-hop-type None --route-table-name $route_a ; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_a_drop_b --address-prefix $b_first_hop --next-hop-type None --route-table-name $route_a 
+AssertSuccess($ResourceGroupName)
 
 # and all other traffic from b to a
-az network route-table route create -g $ResourceGroupName --name $subnet_b_drop_a --address-prefix $a_first_hop --next-hop-type None --route-table-name $route_b; AssertSuccess($ResourceGroupName)
+az network route-table route create -g $ResourceGroupName --name $subnet_b_drop_a --address-prefix $a_first_hop --next-hop-type None --route-table-name $route_b
+AssertSuccess($ResourceGroupName)
 
 Write-Host 'Creating VMs...'
 # Create the VMs
 $imageUrn = ForceMarketplaceUrnFormat($os_image)
+
 # forwarder gets a nic on each subnet
 Write-Host 'Creating forwarder...'
-$mgmtVm = az vm create -n $fwd_vm_name -g $ResourceGroupName --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0; AssertSuccess($ResourceGroupName)
-write-host $mgmtVm
+$mgmtVm = az vm create -n $fwd_vm_name -g $ResourceGroupName --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-0 snd-nic-vm-0 rcv-nic-vm-0
+AssertSuccess($ResourceGroupName)
+Write-Host $mgmtVm
+
 # sender gets a mgmt nic and a nic on subnet a
 Write-Host 'Creating client...'
-$sndVm = az vm create -n $snd_vm_name -g $ResourceGroupName --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-1 snd-nic-vm-1; AssertSuccess($ResourceGroupName)
-write-host $sndVm
+$sndVm = az vm create -n $snd_vm_name -g $ResourceGroupName --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-1 snd-nic-vm-1
+AssertSuccess($ResourceGroupName)
+Write-Host $sndVm
+
 # receiver gets a mgmt nic and a nic on subnet b
 Write-Host 'Creating server...'
-$rcvVM = az vm create -n $rcv_vm_name -g $ResourceGroupName --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-2 rcv-nic-vm-2; AssertSuccess($ResourceGroupName)
-write-host $rcvVm
+$rcvVM = az vm create -n $rcv_vm_name -g $ResourceGroupName --size $vmSize --image $imageUrn --ssh-key-values "$SshPublicKey" --nics mgmt-nic-vm-2 rcv-nic-vm-2
+AssertSuccess($ResourceGroupName)
+Write-Host $rcvVm
 
 # I don't use the results but I think this is a neat trick, feel free to investigate it more.
 # pwsh json handling is great! Usually!
@@ -199,7 +232,8 @@ $sndVM = $sndVM | ConvertFrom-Json
 
 Write-Host 'Setting up forwarder...'
 # add a data disk to the fwder to compile rdma-core and dpdk
-az vm disk attach -g $ResourceGroupName --vm-name $fwd_vm_name --name $fwd_build_disk --size-gb 128 --new; AssertSuccess($ResourceGroupName)
+az vm disk attach -g $ResourceGroupName --vm-name $fwd_vm_name --name $fwd_build_disk --size-gb 128 --new
+AssertSuccess($ResourceGroupName)
 
 # make the data disk parition and mark it r/w
 Write-Host 'Formatting build data disk...'
@@ -230,7 +264,8 @@ if (-not $success) {
 
 # install setup stuff
 Write-Host 'Installing build tools on forwarder...'
-az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script 'export DEBIAN_FRONTEND=noninteractive; sudo apt-get update -y -q && sudo apt-get upgrade -y -q && sudo apt-get install -y -q git build-essential python3-pip' ; AssertSuccess($ResourceGroupName)
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script 'export DEBIAN_FRONTEND=noninteractive; sudo apt-get update -y -q && sudo apt-get upgrade -y -q && sudo apt-get install -y -q git build-essential python3-pip' 
+AssertSuccess($ResourceGroupName)
 Write-Host 'Installing sockperf (client)...'
 az vm run-command invoke --resource-group $ResourceGroupName -n $snd_vm_name --command-id 'RunShellScript' --script 'export DEBIAN_FRONTEND=noninteractive; sudo apt-get update -y -q && sudo apt-get -y -q install sockperf'
 Write-Host 'Installing sockperf (server)...'
@@ -238,18 +273,21 @@ az vm run-command invoke --resource-group $ResourceGroupName -n $rcv_vm_name --c
 
 # clone the az scripts repo
 Write-Host 'Cloning az_scripts repo...'
-az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "git clone $az_scripts_git $build_disk_dir/az_scripts" ; AssertSuccess($ResourceGroupName)
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "git clone $az_scripts_git $build_disk_dir/az_scripts" 
+AssertSuccess($ResourceGroupName)
 
 # mark scripts executable and run the setup
 Write-Host 'Running DPDK installation...'
-az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers; chmod +x ./*.sh; DEBIAN_FRONTEND=noninteractive ./dpdk-test-setup.ubuntu.sh" ; AssertSuccess($ResourceGroupName)
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers; DEBIAN_FRONTEND=noninteractive ./run-dpdk-test-setup.ubuntu.sh" 
+AssertSuccess($ResourceGroupName)
 
 if (-not $TryRunTest) { 
     return 0;
 }
 # make the l3fwd rules files. NOTE: not sure this works as expected yet.
 Write-Host 'Creating l3fwd rules files...'
-az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; chmod +x ./*.sh; ./create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" ; AssertSuccess($ResourceGroupName)
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./util/create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" 
+AssertSuccess($ResourceGroupName)
 
 # start the forwarder
 Write-Host 'Running DPDK l3fwd (async)...'
