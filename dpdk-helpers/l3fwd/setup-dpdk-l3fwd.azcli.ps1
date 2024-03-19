@@ -287,7 +287,7 @@ if (-not $TryRunTest) {
 }
 # make the l3fwd rules files. NOTE: not sure this works as expected yet.
 Write-Host 'Creating l3fwd rules files...'
-az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./util/create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" 
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" 
 AssertSuccess($ResourceGroupName)
 
 # start the forwarder
