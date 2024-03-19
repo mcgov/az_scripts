@@ -7,7 +7,7 @@ function assert_success {
     fi
 }
 
-DEBIAN_FRONTEND=noninteractive sudo apt install -q -y build-essential cmake libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind python3-dev cython3 python3-docutils pandoc libssl-dev libelf-dev python3-pip meson libnuma-dev libpcap-dev linux-modules-extra-azure
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y build-essential cmake libudev-dev libnl-3-dev libnl-route-3-dev ninja-build pkg-config valgrind python3-dev cython3 python3-docutils pandoc libssl-dev libelf-dev python3-pip meson libnuma-dev libpcap-dev linux-modules-extra-azure
 assert_success
 pip3 install pyelftools
 assert_success

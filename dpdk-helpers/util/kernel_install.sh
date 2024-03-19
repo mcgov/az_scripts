@@ -35,7 +35,7 @@ sleep 10
 # tested on 22.04 and RHEL 8.6/9.2
 if command -v apt; then
     export DEBIAN_FRONTEND=noninteractive
-    sudo apt update
+    DEBIAN_FRONTEND=noninteractive sudo apt-get update -y -q
     DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y \
     build-essential cmake libudev-dev \
     libnl-3-dev libnl-route-3-dev pkg-config \
