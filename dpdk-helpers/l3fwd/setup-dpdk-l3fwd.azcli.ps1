@@ -293,6 +293,7 @@ AssertSuccess($ResourceGroupName)
 # start the forwarder
 Write-Host 'Running DPDK l3fwd (async)...'
 az vm run-command invoke --no-wait --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./run-dpdk-l3fwd.sh $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples/dpdk-l3fwd";
+
 # start the receiver
 #write-host "Starting server (async)..."
 #az vm run-command invoke --no-wait --resource-group $ResourceGroupName  -n $rcv_vm_name  --command-id "RunShellScript" --script "sudo timeout 1200 sockperf server --tcp -i $subnet_b_rcv_ip";
@@ -300,11 +301,18 @@ az vm run-command invoke --no-wait --resource-group $ResourceGroupName -n $fwd_v
 #write-host "Starting client..."
 #az vm run-command invoke --resource-group $ResourceGroupName  -n $snd_vm_name  --command-id "RunShellScript" --script "sudo sockperf ping-pong --tcp --full-rtt -i $subnet_b_rcv_ip"
 
+
 Write-Host 'Starting server ping...'
 az vm run-command invoke --resource-group $ResourceGroupName -n $rcv_vm_name --command-id 'RunShellScript' --script "timeout 30 ping  $subnet_a_snd_ip";
+
+
 # start the sender
 Write-Host 'Starting client ping...'
 az vm run-command invoke --resource-group $ResourceGroupName -n $snd_vm_name --command-id 'RunShellScript' --script "timeout 30 ping $subnet_b_rcv_ip"
+
+write-host "Writing send/receive ip's into files on receiver/sender..."
+az vm run-command invoke --resource-group $ResourceGroupName -n $rcv_vm_name --command-id 'RunShellScript' --script "echo `"$subnet_a_snd_ip`" > ./sender_info  ";
+az vm run-command invoke --resource-group $ResourceGroupName -n $snd_vm_name --command-id 'RunShellScript' --script "echo `"$subnet_b_snd_ip`" > ./receiver_info  ";
 
 Write-Host 'Stopping forwarder and server..'
 Get-Job | Stop-Job
