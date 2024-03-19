@@ -175,7 +175,7 @@ Write-Host 'Creating mgmt nics...'
 foreach ($i in 0, 1, 2) {
     $id = $i + 4; # Note: need to add some offset the ip addresses.
     $ip_address = $subnet_0_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet 
+    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet --public-ip-address
     AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating client-side nics...'
@@ -347,8 +347,8 @@ Write-Host 'Starting client ping...'
 az vm run-command invoke --resource-group $ResourceGroupName -n $snd_vm_name --command-id 'RunShellScript' --script "timeout 30 ping $subnet_b_rcv_ip"
 
 write-host "Writing send/receive ip's into files on receiver/sender..."
-az vm run-command invoke --resource-group $ResourceGroupName -n $rcv_vm_name --command-id 'RunShellScript' --script "echo `"$subnet_a_snd_ip`" > ./sender_info  ";
-az vm run-command invoke --resource-group $ResourceGroupName -n $snd_vm_name --command-id 'RunShellScript' --script "echo `"$subnet_b_snd_ip`" > ./receiver_info  ";
+az vm run-command invoke --resource-group $ResourceGroupName -n $rcv_vm_name --command-id 'RunShellScript' --script "echo $subnet_a_snd_ip > ./sender_info  ";
+az vm run-command invoke --resource-group $ResourceGroupName -n $snd_vm_name --command-id 'RunShellScript' --script "echo $subnet_b_snd_ip > ./receiver_info  ";
 
 Write-Host 'Stopping forwarder and server..'
 Get-Job | Stop-Job
