@@ -2,8 +2,8 @@
 
 DPDK_APP_PATH="$1"
 DPDK_APP_EXEC="$DPDK_APP_PATH/dpdk-l3fwd"
-DPDK_RULES_V4="$$DPDK_APP_PATH/rules_v4"
-DPDK_RULES_V6="$$DPDK_APP_PATH/rules_v6"
+DPDK_RULES_V4="$DPDK_APP_PATH/rules_v4"
+DPDK_RULES_V6="$DPDK_APP_PATH/rules_v6"
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
@@ -74,4 +74,4 @@ echo "Running multiple queue test, needs >= 8 cores"
 DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_EXEC -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=\"$QUEUE_CONFIG\" --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype"
 echo "$DPDK_COMMAND" | tee ./rerun_l3fwd
 cd "$DPDK_APP_PATH"
-nohup sudo timeout 230 $DPDK_APP_EXEC -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4="$DPDK_RULES_V4"  --rule_ipv6="$DPDK_RULES_V6" --mode=poll --parse-ptype &
+sudo nohup timeout 230 $DPDK_APP_EXEC -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4="$DPDK_RULES_V4"  --rule_ipv6="$DPDK_RULES_V6" --mode=poll --parse-ptype &
