@@ -3,9 +3,6 @@ param(
     [string] $ResourceGroupName = 'dpdk-fwd-example-default',
     [string] $SshPublicKey,
     [string] $Region,
-    [System.Collections.Hashtable] $AvSetTags = $null,
-    [string] $AvSetProperties = "",
-    [string] $avSetPropertyName = "",
     [switch] $TryRunTest,
     [switch] $cleanupFailure,
     [switch] $cleanupSuccess
@@ -23,7 +20,6 @@ param(
 
 $os_image = 'canonical 0001-com-ubuntu-server-jammy 22_04-lts-gen2 latest'
 $ResourceGroupName = $ResourceGroupName
-$avname = "$ResourceGroupName-avset"
 $vnet = 'test-vnet'
 $nsg = 'test-nsg'; 
 $route_0 = 'route-0'; # mgmt network
@@ -80,6 +76,8 @@ $fwd_build_disk = 'data_disk_fwd'
 $build_disk_dir = '/tmp/build'
 $az_scripts_git = 'https://www.github.com/mcgov/az_scripts.git'
 
+#Get the dir this script is in
+$scriptRootPath = Split-Path -parent $PSCommandPath
 
 # helpers
 function AssertSuccess([string] $ResourceGroupName) {
@@ -120,37 +118,13 @@ function map_ipv4_to_ipv6([string]$ipv4){
 Write-Host "Creating resource group $ResourceGroupName"
 az group create --location $region --resource-group $ResourceGroupName
 AssertSuccess($ResourceGroupName)
-# Make our availability set
-if ($AvSetTags) {
-    Write-Host "Creating avset $avname"
-    # az cli asks you to pass space seperated arguments sometimes which...
-    # is weird to me.
-    
-    if ($AvSetTags.Count -gt 0 ) {
-        Write-Host "attempting to apply av set updates..."
-        az vm availability-set create -n $avname -g $ResourceGroupName --platform-fault-domain-count 1 --platform-update-domain-count 1;
-        AssertSuccess($ResourceGroupName)
-        if ($AvSetProperties -and $avSetPropertyName){
-            az vm availability-set update --add property.$AvSetPropertyName $AvSetProperties 
-            AssertSuccess($ResourceGroupName)
-
-        } 
-        foreach ($t in $AvSetTags.Keys) {
-            az vm availability-set update -add tags.$t=$AvSetTags[$t]
-            AssertSuccess($ResourceGroupName)
-        }
-    }
-}
-else {
-    Write-Host 'No availability set tags provided, skipping availability set creation...'
-}
 
 # make our network and nsg
 Write-Host 'Creating vnet and NSG...'
 az network vnet create --resource-group $ResourceGroupName --name $vnet
 AssertSuccess($ResourceGroupName)
 
-az network nsg create -n $nsg -g $ResourceGroupName -l westus3
+az network nsg create -n $nsg -g $ResourceGroupName -l $Region
 AssertSuccess($ResourceGroupName) 
 
 # create the routing tables, will fill out with rules to ban traffic
