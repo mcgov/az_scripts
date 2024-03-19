@@ -171,11 +171,18 @@ az network vnet subnet create --resource-group $ResourceGroupName --vnet-name te
 AssertSuccess($ResourceGroupName)
 
 # create the NICs we'll use on our VMs and assign them to the subnets
+write-host "Creating public ips for mgmt nics"
+foreach ($i in 0,1,2) {
+    az network public-ip create -g $ResourceGroupName -n "mgmt-public-ip-$i"
+    AssertSuccess($ResourceGroupName)
+}
+
 Write-Host 'Creating mgmt nics...'
+
 foreach ($i in 0, 1, 2) {
     $id = $i + 4; # Note: need to add some offset the ip addresses.
     $ip_address = $subnet_0_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet --public-ip-address
+    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet --public-ip-address "mgmt-public-ip-$i"
     AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating client-side nics...'
@@ -202,7 +209,7 @@ foreach ($i in 0, 2) {
     } else {
         $ip_forward = 0
     }
-    az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet --ip_forwarding $ip_forward
+    az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet --ip-forwarding $ip_forward
     AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating routing rules...'
@@ -325,10 +332,11 @@ $ipv6_sender = map_ipv4_to_ipv6($subnet_a_snd_ip)
 $ipv6_receiver = map_ipv4_to_ipv6($subnet_b_rcv_ip)
 az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./create_l3fwd_rules_files.sh $ipv6_sender $ipv6_receiver rules_ipv6 $build_disk_dir/az_scripts/dpdk-helpers/dpdk" 
 
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "ls $build_disk_dir/az_scripts/dpdk-helpers; ls $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples/";
 
 # start the forwarder
 Write-Host 'Running DPDK l3fwd (async)...'
-az vm run-command invoke --no-wait --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./run-dpdk-l3fwd.sh $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples/dpdk-l3fwd";
+az vm run-command invoke --no-wait --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./run-dpdk-l3fwd.sh $build_disk_dir/az_scripts/dpdk-helpers/dpdk/build/examples";
 
 # start the receiver
 #write-host "Starting server (async)..."

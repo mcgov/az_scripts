@@ -1,7 +1,9 @@
 #! /bin/bash
 
 DPDK_APP_PATH="$1"
-
+DPDK_APP_EXEC="$DPDK_APP_PATH/dpdk-l3fwd"
+DPDK_RULES_V4="$$DPDK_APP_PATH/rules_v4"
+DPDK_RULES_V6="$$DPDK_APP_PATH/rules_v6"
 function assert_success {
     if [ $? -ne 0 ]; then
         echo "Last call failed! Exiting..."
@@ -20,8 +22,11 @@ assert_success
 NET_UUID="f8615163-df3e-46c5-913f-f2d2f965ed0e"
 echo "$NET_UUID" > /sys/bus/vmbus/drivers/uio_hv_generic/new_id
 
+
 for nic in eth1 eth2;
 do
+    if [ -e /sys/class/net/"$nic" ]; then
+    
     # $ ip -br link show master eth1 
     # > enP30832p0s0     UP             f0:0d:3a:ec:b4:0a <... # truncated
     # grab interface name for device bound to primary
@@ -66,6 +71,7 @@ for q in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
 done
 
 echo "Running multiple queue test, needs >= 8 cores"
-DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_PATH -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=$QUEUE_CONFIG --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype"
+DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_EXEC -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=$QUEUE_CONFIG --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype"
 echo "$DPDK_COMMAND" | tee ./rerun_l3fwd
-sudo timeout 1200 "$DPDK_APP_PATH" -l 1-17 "$VDEV_ARG" -- -p 0xC  --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4  --rule_ipv6=rules_v6 --mode=poll --parse-ptype
+cd "$DPDK_APP_PATH"
+nohup sudo timeout 230 $DPDK_APP_EXEC -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4="$DPDK_RULES_V4"  --rule_ipv6="$DPDK_RULES_V6" --mode=poll --parse-ptype &
