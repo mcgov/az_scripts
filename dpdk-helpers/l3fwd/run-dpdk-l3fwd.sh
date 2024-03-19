@@ -24,9 +24,7 @@ echo "$NET_UUID" > /sys/bus/vmbus/drivers/uio_hv_generic/new_id
 
 
 for nic in eth1 eth2;
-do
-    if [ -e /sys/class/net/"$nic" ]; then
-    
+do    
     # $ ip -br link show master eth1 
     # > enP30832p0s0     UP             f0:0d:3a:ec:b4:0a <... # truncated
     # grab interface name for device bound to primary
@@ -39,7 +37,6 @@ do
     DEVICE_INFO=$(ethtool -i "$SECONDARY")
     BUS_INFO_RAW=$(echo "$DEVICE_INFO" | grep bus-info)
     BUS_INFO=$(echo "$BUS_INFO_RAW" | awk '{ print $2 }')
-
 
     ## Move synthetic channel to user mode and allow it to be used by NETVSC PMD in DPDK
     NIC_DEV=$(readlink /sys/class/net/"$nic"/device)
