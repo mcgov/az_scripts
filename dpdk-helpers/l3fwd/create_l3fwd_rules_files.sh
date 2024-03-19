@@ -1,13 +1,12 @@
 #! /bin/bash
 
 SEND_IP_CIDR="$1"
-#SEND_PORT=$2
 RCV_IP_CIDR="$2"
-#RCV_PORT=$4
+RULES_FILE="$3"
+DPDK_PATH="$4"
 
-
-pushd ../dpdk/build/examples || ( echo "pushd ../dpdk/build/examples failed: $?"; exit 1)
-echo "R $SEND_IP_CIDR 2" | tee rules_v4
-echo "R $RCV_IP_CIDR 3" | tee -a rules_v4
-echo "" | tee rules_v6 #try an empty file
-#echo "R $6 $4" | tee -a rules_v6
+EXAMPLE_PATH="$DPDK_PATH/build/examples"
+pushd "$EXAMPLE_PATH" || ( echo "pushd $EXAMPLE_PATH failed: $?"; exit 1)
+echo "R $SEND_IP_CIDR 2" | tee "$RULES_FILE"
+echo "R $RCV_IP_CIDR 3" | tee -a "$RULES_FILE"
+popd ||  ( echo "popd from $EXAMPLE_PATH failed: $?"; exit 1)

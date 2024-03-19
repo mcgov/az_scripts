@@ -9,6 +9,8 @@ param(
     [switch] $cleanupSuccess
 )
 
+# NOTE: script assumes you have set up your environment. Make sure to login before you run the script, otherwise the default subscription might be different than you expect!
+
 # az login
 # az account set --subscription "Your Subscription Name"
 
@@ -96,7 +98,22 @@ function ForceMarketplaceUrnFormat([string] $imageName) {
     return $imageName.replace(' ', ':')
 }
 
-
+function map_ipv4_to_ipv6([string]$ipv4){
+    $ipv6 = "0000:0000:0000:0000:0000:FFFF:"
+    # split ipv4 address 
+    $split_ipv4 = $ipv4.split('.')
+    # apply hex to the first two digits
+    foreach($digit in $split_ipv4[0..1]) {
+         $ipv6 += "{0:x2}" -f ([int]$digit); 
+    }
+    # add the third digit, we're making a mask
+    # so discard the fourth to make a /56
+    $ipv6 += ":"
+    # return a /56 lpm ipv6 mapped ipv4 address
+    $ipv6 += "{0:x2}00/56" -f ([int]$split_ipv4[2]);
+    write-host "Mapped $ipv4 to $ipv6..." 
+    return $ipv6
+}
 # make our RG
 Write-Host "Creating resource group $ResourceGroupName"
 az group create --location $region --resource-group $ResourceGroupName
@@ -158,14 +175,20 @@ Write-Host 'Creating mgmt nics...'
 foreach ($i in 0, 1, 2) {
     $id = $i + 4; # Note: need to add some offset the ip addresses.
     $ip_address = $subnet_0_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet
+    az network nic create --private-ip-address $ip_address -n mgmt-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_0 --vnet-name $vnet 
     AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating client-side nics...'
 foreach ($i in 0, 1) {
     $id = $i + 4; 
     $ip_address = $subnet_a_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n snd-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_a --vnet-name $vnet
+    # enable ip forwarding for fwder nics
+    if ($i -eq 0){
+        $ip_forward = 1
+    } else {
+        $ip_forward = 0
+    }
+    az network nic create --private-ip-address $ip_address -n snd-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_a --vnet-name $vnet --ip-forwarding $ip_forward
     AssertSuccess($ResourceGroupName)
 }
 # create the receiver nics as 0 , 2 to let the VM names match up w the subnets.
@@ -173,7 +196,13 @@ Write-Host 'Creating server-side nics...'
 foreach ($i in 0, 2) {
     $id = $i + 4;
     $ip_address = $subnet_b_prefix + '.' + $id
-    az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet
+    # enable ip forwarding for fwder nics
+    if ($i -eq 0) {
+        $ip_forward = 1
+    } else {
+        $ip_forward = 0
+    }
+    az network nic create --private-ip-address $ip_address -n rcv-nic-vm-$i -g $ResourceGroupName --accelerated-networking 1 --subnet $subnet_b --vnet-name $vnet --ip_forwarding $ip_forward
     AssertSuccess($ResourceGroupName)
 }
 Write-Host 'Creating routing rules...'
@@ -285,10 +314,17 @@ AssertSuccess($ResourceGroupName)
 if (-not $TryRunTest) { 
     return 0;
 }
+
 # make the l3fwd rules files. NOTE: not sure this works as expected yet.
 Write-Host 'Creating l3fwd rules files...'
-az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./create_l3fwd_rules_files.sh $a_first_hop $b_first_hop" 
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./create_l3fwd_rules_files.sh $subnet_a_snd_ip $subnet_b_rcv_ip rules_ipv4 $build_disk_dir/az_scripts/dpdk-helpers/dpdk" 
 AssertSuccess($ResourceGroupName)
+
+# write ipv4 ips mapped t ipv6 for the v6 rules
+$ipv6_sender = map_ipv4_to_ipv6($subnet_a_snd_ip)
+$ipv6_receiver = map_ipv4_to_ipv6($subnet_b_rcv_ip)
+az vm run-command invoke --resource-group $ResourceGroupName -n $fwd_vm_name --command-id 'RunShellScript' --script "cd $build_disk_dir/az_scripts/dpdk-helpers/l3fwd; ./create_l3fwd_rules_files.sh $ipv6_sender $ipv6_receiver rules_ipv6 $build_disk_dir/az_scripts/dpdk-helpers/dpdk" 
+
 
 # start the forwarder
 Write-Host 'Running DPDK l3fwd (async)...'
@@ -322,3 +358,4 @@ Get-Job | Stop-Job
 if ($CleanupSuccess) {
     az group delete -y -g $ResourceGroupName ; # answer yes
 }
+
