@@ -4,6 +4,8 @@ param(
     [string] $SshPublicKey,
     [string] $Region,
     [System.Collections.Hashtable] $AvSetTags = $null,
+    [string] $AvSetProperties = "",
+    [string] $avSetPropertyName = "",
     [switch] $TryRunTest,
     [switch] $cleanupFailure,
     [switch] $cleanupSuccess
@@ -123,16 +125,21 @@ if ($AvSetTags) {
     Write-Host "Creating avset $avname"
     # az cli asks you to pass space seperated arguments sometimes which...
     # is weird to me.
-    $tagArgs = @()
-    foreach ($t in $AvSetTags.Keys) {
-        $TagArgs += @( "$t=" + $AvSetTags[$t] )
-    }
-    $tags = $TagArgs -join ' '
-    if ($tags.replace('=', '') -ne '' ) {
-        Write-Host "attempting to apply tags: $tags"
-        az vm availability-set create -n $avname -g $ResourceGroupName --platform-fault-domain-count 1 --platform-update-domain-count 1 --tags $tags;
+    
+    if ($AvSetTags.Count -gt 0 ) {
+        Write-Host "attempting to apply av set updates..."
+        az vm availability-set create -n $avname -g $ResourceGroupName --platform-fault-domain-count 1 --platform-update-domain-count 1;
         AssertSuccess($ResourceGroupName)
-    } 
+        if ($AvSetProperties -and $avSetPropertyName){
+            az vm availability-set update --add property.$AvSetPropertyName $AvSetProperties 
+            AssertSuccess($ResourceGroupName)
+
+        } 
+        foreach ($t in $AvSetTags.Keys) {
+            az vm availability-set update -add tags.$t=$AvSetTags[$t]
+            AssertSuccess($ResourceGroupName)
+        }
+    }
 }
 else {
     Write-Host 'No availability set tags provided, skipping availability set creation...'
