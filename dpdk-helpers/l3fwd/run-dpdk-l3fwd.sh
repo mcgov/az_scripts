@@ -76,9 +76,14 @@ DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_EXEC -l 1-17 $VDEV_ARG -- -p 0xC  --lo
 echo "$DPDK_COMMAND" | tee ./rerun_l3fwd
 
 # much fun figuring out these escaping rules
-sudo nohup "$DPDK_APP_EXEC" -l "1-17" "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4="$DPDK_RULES_V4" --rule_ipv6="$DPDK_RULES_V6" --mode=poll --parse-ptype 2>&1 &
-echo "Launched nohup? $?"
+pushd "$DPDK_APP_PATH" || (echo "could not pushd"; exit 1)
+nohup sudo timeout 10 "$DPDK_APP_EXEC" -l "1-17" "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4 --rule_ipv6=rules_v6 --mode=poll --parse-ptype 2>&1 
+nohup sudo timeout 1200 "$DPDK_APP_EXEC" -l "1-17" "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4 --rule_ipv6=rules_v6 --mode=poll --parse-ptype 2>&1 &
+echo "Launched nohup: $?"
 sudo cat ./nohup.out
 sudo cat ~/nohup.out
 echo "$(pwd)"
-ls "$(pwd)"
+ls "$(pwd)/"
+sudo find / -name nohup.out
+popd || ( echo "could not popd"; exit 1)
+exit 0
