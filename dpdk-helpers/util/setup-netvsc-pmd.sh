@@ -21,7 +21,7 @@ else
     echo "If this is a re-run without rebooting, use the ./rerun-dpdk-testpmd"
     echo "If this is a re-run after a reboot, use pps-dpdk-testpmd.sh"
     echo "If you already did do that, this script is broken."
-    ./display-maintainer-info.sh
+    ./util/display-maintainer-info.sh
     exit 1
 fi
 SECONDARY=$(ip -br link show master "$PRIMARY" | awk '{ print $1 }')
@@ -46,8 +46,7 @@ assert_success
 BUS_INFO=$(echo "$BUS_INFO_RAW" | awk '{ print $2 }')
 assert_success
 # Set MANA interfaces DOWN before starting DPDK
-sudo ip link set "$PRIMARY" down
-sudo ip link set "$SECONDARY" down
+
 ## Move synthetic channel to user mode and allow it to be used by NETVSC PMD in DPDK
 PRIMARY_DEVICE=$(readlink "/sys/class/net/$PRIMARY/device")
 assert_success
@@ -57,6 +56,8 @@ NET_UUID="f8615163-df3e-46c5-913f-f2d2f965ed0e"
 echo "loading uio_hv_generic driver..."
 sudo modprobe uio_hv_generic
 assert_success
+sudo ip link set "$PRIMARY" down
+sudo ip link set "$SECONDARY" down
 echo "$NET_UUID" | sudo tee -a /sys/bus/vmbus/drivers/uio_hv_generic/new_id
 assert_success
 echo "$DEV_UUID" | sudo tee -a /sys/bus/vmbus/drivers/hv_netvsc/unbind

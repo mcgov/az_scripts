@@ -19,13 +19,13 @@ export DEBIAN_FRONTEND=noninteractive
 # install dependencies for building dpdk and rdma-core
 
 if [[ "$1" == "--use-package-manager"  ]]; then
-    sudo apt update
-    DEBIAN_FRONTEND=noninteractive sudo apt install -y -q dpdk rdma-core linux-modules-extra-azure
+    sudo DEBIAN_FRONTEND=noninteractive  apt update > /dev/null
+    sudo DEBIAN_FRONTEND=noninteractive  apt install -y -q dpdk rdma-core linux-modules-extra-azure
 elif [[ "$1" == "--help" ]]; then
     cat ./.print-usage-note.txt
     exit 0
 else
-    sudo apt update
+    sudo DEBIAN_FRONTEND=noninteractive apt update > /dev/null
     ./util/run-dpdk-rdma-source-install.sh
 fi
 
