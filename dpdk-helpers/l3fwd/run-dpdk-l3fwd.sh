@@ -80,10 +80,14 @@ pushd "$DPDK_APP_PATH" || (echo "could not pushd"; exit 1)
 nohup sudo timeout 10 "$DPDK_APP_EXEC" -l "1-17" "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4 --rule_ipv6=rules_v6 --mode=poll --parse-ptype 2>&1 
 nohup sudo timeout 1200 "$DPDK_APP_EXEC" -l "1-17" "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4 --rule_ipv6=rules_v6 --mode=poll --parse-ptype 2>&1 &
 echo "Launched nohup: $?"
-sudo cat ./nohup.out
-sudo cat ~/nohup.out
+echo $(sudo cat ./nohup.out)
+echo $(sudo cat /home/$USER/nohup.out)
+echo $(sudo cat /root/nohup.out)
 echo "$(pwd)"
 ls "$(pwd)/"
-sudo find / -name nohup.out
+echo $(sudo find / -name nohup.out)
+echo $(sudo find /tmp -name nohup.out)
+echo $(sudo find /var -name nohup.out)
+echo $(sudo pidof nohup)
 popd || ( echo "could not popd"; exit 1)
 exit 0
