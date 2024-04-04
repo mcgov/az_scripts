@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# verify mdatp installation data is not present
+# verify mdatp installation data is not already present
 # for use on a newly provisioned VM before attempting to install mdatp/defender/etc.
 
 # Returns nonzero value on detection of any defender info
