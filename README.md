@@ -1,5 +1,5 @@
 # az_scripts
-a collection of unofficial but possibly useful* scripts.
+a collection of unofficial yet potentially useful* scripts.
 
 **az_fix_dns_resolve.sh**
 
@@ -13,6 +13,6 @@ Script to verify accerated networking has finished initializing on Azure
 
 Build or install upstream linux kernel, rdma-core, and dpdk packages for MANA testing on Azure for Ubuntu 22.04 or RHEL 8.4+
 
-*and the rest!*
+and so on...
 
-<sub><sub>* *no warranty, not endorsed by my or any employer, do not use without reading, usefullness not guaranteed, by reading this readme you agree all things are possible*
+<sub><sub>* *no warranty, not endorsed by my or any employer, examples only, do not use without reading, usefullness not guaranteed*
