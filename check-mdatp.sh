@@ -5,21 +5,19 @@
 
 # Returns nonzero value on detection of any defender info
 # Return value is a bitmask showing the types of info detected.
-# Bits are ordered by seriousness of the issue:
-# Least significant bit is bad
-# Most significant bit is worst.
+# Bits are ordered by seriousness of the issue.
 
 EXIT_CODE=0
-# if any mdatp/defender installation dir is found
-EXIT_MDATP_INSTALLED=1
+# if any mdatp install in /etc/opt is found
+EXIT_MDATP_AGENT_INSTALLED=1
+# if mdatp az extension is installed
+EXIT_MDE_INSTALLED=2
 # if any log dirs are found
-EXIT_MDATP_LOGS_FOUND=2
+EXIT_MDATP_LOGS_FOUND=4
 # if an installation log is found
-EXIT_MDATP_INSTALL_LOGS_FOUND=4
-# if an onboarding blog is found
-EXIT_ONBOARD_INFO_FOUND=8
-
-# checks these dirs as well as some extension dirs usig globs
+EXIT_MDATP_INSTALL_LOGS_FOUND=8
+# if an onboarding blob is found
+EXIT_ONBOARD_INFO_FOUND=16
 MDATP_OPT_DIR='/etc/opt/microsoft/mdatp'
 MDATP_LOG_DIR='/var/log/microsoft/mdatp'
 ERROR_MSG_HEADER="----------------------------------------------------------------------"
@@ -35,34 +33,23 @@ check_unexpected_file () {
     # see what it is, print if it's printable
     file "$surprise_file"; grep -Iq . "$surprise_file" && cat "$surprise_file"
 }
-# check for mdatp extension, folder is version labeled, so use a shell glob
+
+# check for MDE extension installation, folder is version labeled, so use a shell glob
 for mde_dir in /var/lib/waagent/Microsoft.Azure.AzureDefenderForServers.MDE.Linux* ; do
     # for all the versioned folders we find...
     if [ -e "$mde_dir" ]; then
-        EXIT_CODE=$EXIT_MDATP_INSTALLED
+        EXIT_CODE=$((EXIT_CODE|EXIT_MDE_INSTALLED))
         if [ -d "$mde_dir" ]; then
             # find regular files, skip printing them if they are binary
             find_printable_files "$mde_dir"
         else
-            # not expecting to find a regular file in /var/log/azure, but...
+            # not expecting to find a regular file instead of a dir, but...
             check_unexpected_file "$mde_dir"
         fi
     fi
 done
 
-# check for azure extension install dir
-if [  -e "$MDATP_OPT_DIR" ]; then
-    EXIT_CODE=$EXIT_MDATP_INSTALLED
-    find_printable_files "$MDATP_OPT_DIR"
-fi
-
-# check for install or runtime logs
-if [  -e "$MDATP_LOG_DIR" ]; then
-    EXIT_CODE=$((EXIT_CODE|EXIT_MDATP_LOGS_FOUND))
-    find_printable_files "$MDATP_LOG_DIR"
-fi
-
-# check for Azure Resource Manager mde extension logs
+# check for ARM log files
 for log_dir in /var/log/azure/Microsoft.Azure.AzureDefenderForServers.MDE.Linux* ; do
     # for all the versioned folders we find...
     if [ -e "$log_dir" ]; then
@@ -77,8 +64,8 @@ for log_dir in /var/log/azure/Microsoft.Azure.AzureDefenderForServers.MDE.Linux*
     fi
 done
 
-# check for ARC mde extension logs
-for log_dir in /var/lib/GuestConfig/extension_logs/Microsoft.Azure.AzureDefenderForServers.MDE.Linux-* ; do
+# check for ARC logs
+for log_dir in /var/lib/GuestConfig/extension_logs/Microsoft.Azure.AzureDefenderForServers.MDE.Linux* ; do
     # for all the versioned folders we find...
     if [ -e "$log_dir" ]; then
         EXIT_CODE=$((EXIT_CODE|EXIT_MDATP_LOGS_FOUND))
@@ -91,11 +78,23 @@ for log_dir in /var/lib/GuestConfig/extension_logs/Microsoft.Azure.AzureDefender
     fi
 done
 
+# check for mde agent install in /etc/opt
+if [  -e "$MDATP_OPT_DIR" ]; then
+    EXIT_CODE=$((EXIT_CODE|EXIT_MDATP_AGENT_INSTALLED))
+    find_printable_files "$MDATP_OPT_DIR"
+fi
+
+# check for install or runtime logs in /var/log
+if [  -e "$MDATP_LOG_DIR" ]; then
+    EXIT_CODE=$((EXIT_CODE|EXIT_MDATP_LOGS_FOUND))
+    find_printable_files "$MDATP_LOG_DIR"
+fi
+
 # special log line for install logs
 if [ -f "$MDATP_LOG_DIR/install.log" ]; then
     echo "$ERROR_MSG_HEADER" >&2
     echo "ERROR: mdatp install logs are present in this image!" >&2
-    echo "Publishers should remove this data before publishing a public image." >&2
+    echo "Publishers should remove this data before publishing public images." >&2
     EXIT_CODE=$((EXIT_CODE|EXIT_MDATP_INSTALL_LOGS_FOUND))
 fi
 
@@ -103,7 +102,7 @@ fi
 if [ -f "$MDATP_OPT_DIR/mdatp_onboard.json" ]; then
     echo "$ERROR_MSG_HEADER" >&2
     echo "ERROR: mdatp onboarding info is present in this image!" >&2
-    echo "Publishers should remove this data before publishing public image." >&2
+    echo "Publishers should remove this data before publishing public images." >&2
     EXIT_CODE=$((EXIT_CODE|EXIT_ONBOARD_INFO_FOUND))
 fi
 
