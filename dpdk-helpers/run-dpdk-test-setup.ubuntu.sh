@@ -37,7 +37,7 @@ echo 'mana_ib' | sudo tee -a /etc/modules
 #   vendor: Microsoft Corporation (1414)
 #   class:  Ethernet Controller (0200)
 #   device: Microsft Azure Network Adapter VF (00ba)
-if ! lspci -d 1414:00ba:0200; then
+if lspci -d 1414:00ba:0200; then
     echo "MANA device is available."
     export USE_MANA=1
     echo "checking for existence of mana driver (might need to install kernel or linux-modules-extra)"
