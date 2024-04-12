@@ -18,10 +18,11 @@ echo "preparing for netvsc pmd use"
 VDEV_ARG=""
 MAC_INFO=""
 
-modprobe uio_hv_generic
+sudo modprobe uio_hv_generic
 assert_success
+
 NET_UUID="f8615163-df3e-46c5-913f-f2d2f965ed0e"
-echo "$NET_UUID" > /sys/bus/vmbus/drivers/uio_hv_generic/new_id
+echo "$NET_UUID" | sudo tee /sys/bus/vmbus/drivers/uio_hv_generic/new_id
 
 if [ -e ./vdev_arg ]; then
     VDEV_ARG=$( cat ./vdev_arg )
@@ -71,14 +72,19 @@ for q in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
     ((LAST_CORE=LAST_CORE+1))
 done
 
-echo "Running multiple queue test, needs >= 8 cores"
-DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_EXEC --log-level eal,debug --log-level mana,debug --log-level netvsc,debug -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=$QUEUE_CONFIG --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype"
-echo "$DPDK_COMMAND" | tee ./rerun_l3fwd
+
 
 # much fun figuring out these escaping rules
 pushd "$DPDK_APP_PATH" || (echo "could not pushd"; exit 1)
-sudo timeout 10 "$DPDK_APP_EXEC" -l "1-17" --log-level eal,debug --log-level mana,debug --log-level netvsc,debug "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4 --rule_ipv6=rules_v6 --mode=poll --parse-ptype 2>&1 
-nohup sudo timeout 1200 "$DPDK_APP_EXEC" --log-level eal,debug --log-level mana,debug --log-level netvsc,debug -l "1-17" "$VDEV_ARG" -- -p 0xC --lookup=lpm --config="$QUEUE_CONFIG" --rule_ipv4=rules_v4 --rule_ipv6=rules_v6 --mode=poll --parse-ptype 2>&1 &
+
+echo "Running multiple queue fwd test, needs >= 32 cores"
+DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_EXEC --log-level eal,debug --log-level mana,debug --log-level netvsc,debug -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=$QUEUE_CONFIG --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype"
+echo "#! /bin/sh" | tee ./rerun_l3fwd.sh
+echo "$DPDK_COMMAND" | tee -a ./rerun_l3fwd.sh
+sudo chmod +x ./rerun_l3fwd.sh
+./rerun_l3fwd.sh
+nohup ./rerun_l3fwd.sh
+
 echo "Launched nohup: $?"
 echo $(sudo cat ./nohup.out)
 echo $(sudo cat $HOME/nohup.out)
