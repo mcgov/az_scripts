@@ -15,6 +15,11 @@ function assert_success {
     fi
 }
 
+if  [ -e './rerun-dpdk-testpmd.sh' ]; then
+    ./rerun-dpdk-testpmd.sh
+    exit $?
+fi
+
 ## Parse Arguments
 FWDMODE="$1" # should be rxonly or txonly
 if [[ -z "$FWDMODE" ]]; then
@@ -35,7 +40,10 @@ echo "Running multiple queue test, needs >= 64 cores"
 # get core count, calculcate core argument (fwd cores + 1) and # of forwarding cores to use
 ((CPUCOUNT=$(lscpu | grep -P '^CPU\(s\):\s+[0-9]+' | awk  '{ print $2 }')))
 ((SIXFOUR=64))
-if [[ $CPUCOUNT -eq $SIXFOUR ]]; then
+((THIRTYTWO=32))
+if [[ $CPUCOUNT -eq $THIRTYTWO ]]; then
+    ((FWD_CORES=16))
+elif [[ $CPUCOUNT -eq $SIXFOUR ]]; then
     ((FWD_CORES=32))
 elif [[ $CPUCOUNT -gt $SIXFOUR ]]; then
     ((FWD_CORES=64))
@@ -49,7 +57,7 @@ fi
 PRIMARY="eth1"
 echo "running netvsc pmd setup. Must re-run "
 if [[ -e "/sys/class/net/$PRIMARY" ]]; then
-    ./setup-netvsc-pmd.sh eth1
+    ./util/setup-netvsc-pmd.sh eth1
     assert_success
 else
     echo "eth1 not found, assuming re-run and attempt to set lower down..."
@@ -69,19 +77,26 @@ if [[ -f "./$PRIMARY.dpdk-eal-vdev.arg" ]]; then
     VDEV_ARG=$(cat ./$PRIMARY.dpdk-eal-vdev.arg)
 else
     echo "There was a problem fetching the DPDK EAL vdev argument for $PRIMARY"
-    ./display-maintainer-info.sh
+    ./util/display-maintainer-info.sh
     exit 1
 fi
 
 ## Enable hugepages before starting testpmd
-./enable-hugepages-2mb.sh
+./util/enable-hugepages-2mb.sh
 
 # log the testpmd command for future re-runs
 RUN_DPDK_CMD="sudo timeout -s INT 120 dpdk-testpmd -l 1-$LAST_CORE $VDEV_ARG -- --forward-mode=$FWDMODE --auto-start --nb-cores=$FWD_CORES  --txd=128 --rxd=128 --txq=32 --rxq=32 --stats 2  $SENDER_IP_ARG"
-echo "$RUN_DPDK_CMD" | tee -a ./rerun-dpdk-testpmd
+
+# write the command out to a file and run that
+# to avoid weird parsing of the command in the event the last arg is empty
+echo "#! /bin/sh" | tee ./rerun-dpdk-testpmd.sh
+echo "$RUN_DPDK_CMD" | tee -a ./rerun-dpdk-testpmd.sh
+sudo chmod +x ./rerun-dpdk-testpmd.sh
+./rerun-dpdk-testpmd.sh
+EXIT_CODE=$?
 
 ## Start MANA multiple queue test (example assumes > 64 cores)
-sudo timeout -s INT 120 dpdk-testpmd -l "1-$LAST_CORE" "$VDEV_ARG" -- --forward-mode="$FWDMODE" --auto-start --nb-cores="$FWD_CORES"  --txd=128 --rxd=128 --txq=32 --rxq=32 --stats 2  "$SENDER_IP_ARG"
+#sudo timeout -s INT 120 dpdk-testpmd -l "1-$LAST_CORE" "$VDEV_ARG" -- --forward-mode="$FWDMODE" --auto-start --nb-cores="$FWD_CORES"  --txd=128 --rxd=128 --txq=32 --rxq=32 --stats 2  $SENDER_IP_ARG
 
 echo "Run complete!"
-exit 0;
+exit $EXIT_CODE;

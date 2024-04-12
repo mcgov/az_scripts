@@ -19,13 +19,13 @@ export DEBIAN_FRONTEND=noninteractive
 # install dependencies for building dpdk and rdma-core
 
 if [[ "$1" == "--use-package-manager"  ]]; then
-    sudo DEBIAN_FRONTEND=noninteractive  apt update > /dev/null
-    sudo DEBIAN_FRONTEND=noninteractive  apt install -y -q dpdk rdma-core linux-modules-extra-azure
+    sudo apt update
+    DEBIAN_FRONTEND=noninteractive sudo apt install -y -q dpdk rdma-core linux-modules-extra-azure
 elif [[ "$1" == "--help" ]]; then
     cat ./.print-usage-note.txt
     exit 0
 else
-    sudo DEBIAN_FRONTEND=noninteractive apt update > /dev/null
+    sudo apt update
     ./util/run-dpdk-rdma-source-install.sh
 fi
 
@@ -41,8 +41,12 @@ if lspci -d 1414:00ba:0200; then
     echo "MANA device is available."
     export USE_MANA=1
     echo "checking for existence of mana driver (might need to install kernel or linux-modules-extra)"
+    if !  sudo modprobe mana_ib; then
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y linux-modules-extra-azure
+    fi
     sudo modprobe mana_ib
     assert_success
+    
 else
     echo "MANA was not detected."
 fi
