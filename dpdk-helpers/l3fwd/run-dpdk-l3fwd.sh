@@ -78,17 +78,15 @@ done
 pushd "$DPDK_APP_PATH" || (echo "could not pushd"; exit 1)
 
 echo "Running multiple queue fwd test, needs >= 32 cores"
-DPDK_COMMAND="sudo timeout 1200 $DPDK_APP_EXEC --log-level eal,debug --log-level mana,debug --log-level netvsc,debug -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config=$QUEUE_CONFIG --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype"
-echo "#! /bin/sh" | tee ./rerun_l3fwd.sh
-echo "$DPDK_COMMAND" | tee -a ./rerun_l3fwd.sh
-sudo chmod +x ./rerun_l3fwd.sh
-./rerun_l3fwd.sh
-nohup ./rerun_l3fwd.sh
+echo "sudo timeout 1200 $DPDK_APP_EXEC --log-level eal,debug --log-level mana,debug --log-level netvsc,debug -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config='$QUEUE_CONFIG' --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype" > rerun_dpdk.log
+sudo timeout 1200 $DPDK_APP_EXEC --log-level eal,debug --log-level mana,debug --log-level netvsc,debug -l 1-17 $VDEV_ARG -- -p 0xC  --lookup=lpm --config='$QUEUE_CONFIG' --rule_ipv4=$DPDK_RULES_V4  --rule_ipv6=$DPDK_RULES_V6 --mode=poll --parse-ptype
+
 
 echo "Launched nohup: $?"
 echo $(sudo cat ./nohup.out)
 echo $(sudo cat $HOME/nohup.out)
 echo $(sudo cat /root/nohup.out)
+echo $(sudo cat $(pwd)/nohup.out)
 echo "$(pwd)"
 ls "$(pwd)/"
 echo $(sudo find / -name nohup.out)
