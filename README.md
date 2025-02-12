@@ -15,4 +15,4 @@ Build or install upstream linux kernel, rdma-core, and dpdk packages for MANA te
 
 and so on...
 
-<sub><sub>* *no warranty, not endorsed by my or any employer, examples only, do not use without reading, usefullness not guaranteed*
+<sub><sub>* *no warranty, not endorsed by my or any employer, examples only, do not use without reading, usefulness not guaranteed*
